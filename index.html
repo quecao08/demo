@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cao Thi Que - IT Business Analyst Portfolio</title>
+    <style>
+        /* --- GOOGLE FONTS & GLOBAL STYLES --- */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+        :root {
+            --primary-blue: #0d6efd; 
+            --dark-blue: #0a4b9f;
+            --dark-text: #212529; 
+            --body-text: #495057;
+            --light-bg: #f8f9fa;
+            --white: #ffffff;
+            --border-color: #dee2e6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--body-text);
+            background-color: var(--white);
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        section {
+            padding: 100px 0;
+        }
+        
+        /* --- SECTION TITLE STYLE --- */
+        .section-title {
+            font-size: 2.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--dark-text);
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        /* --- ANIMATIONS --- */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- HEADER --- */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            gap: 35px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--dark-text);
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-blue);
+        }
+
+        /* --- NEW HERO SECTION LAYOUT --- */
+        .hero {
+            display: flex;
+            align-items: center;
+            min-height: 100vh;
+            padding-top: 80px; 
+            background-color: var(--light-bg);
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .hero-image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-img {
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 8px solid var(--white);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .hero-text .greeting {
+            color: var(--primary-blue);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .hero-text h1 {
+            font-size: 3.5rem;
+            color: var(--dark-text);
+            line-height: 1.2;
+        }
+
+        .hero-text .subtitle {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--body-text);
+            margin: 15px 0 25px 0;
+        }
+        
+        .hero-text .description {
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        /* --- ABOUT SECTION --- */
+        #about {
+            background-color: var(--white);
+        }
+        
+        .about-content {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.15rem;
+        }
+
+        /* --- SKILLS SECTION --- */
+        #skills {
+            background-color: var(--light-bg);
+        }
+        
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+        }
+
+        .skill-card {
+            background: var(--white);
+            padding: 35px 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
+        }
+        
+        .skill-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(13, 110, 253, 0.1);
+        }
+        
+        .skill-icon {
+            font-size: 2.5rem;
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+        }
+
+        .skill-card h3 {
+            color: var(--dark-text);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .skill-card p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* --- PROJECTS SECTION --- */
+        #projects {
+            background-color: var(--white);
+        }
+
+        .project-card {
+            background: var(--light-bg);
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 5px solid var(--primary-blue);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .project-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.07);
+        }
+
+        .project-card h3 {
+            font-size: 1.6rem;
+            color: var(--dark-text);
+            margin-bottom: 10px;
+        }
+
+        .project-card p {
+            color: var(--body-text);
+            margin-bottom: 20px;
+        }
+        
+        .project-card ul {
+           list-style: none;
+           padding-left: 5px;
+        }
+        
+        .project-card li {
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .project-card li::before {
+            content: '✓';
+            color: var(--primary-blue);
+            position: absolute;
+            left: 0;
+            font-weight: 600;
+        }
+
+        /* --- PHILOSOPHY SECTION --- */
+        #philosophy {
+            background-color: var(--light-bg);
+            text-align: center;
+        }
+
+        .philosophy-content blockquote {
+            font-size: 1.4rem;
+            font-style: italic;
+            font-weight: 300;
+            max-width: 850px;
+            margin: 0 auto;
+            position: relative;
+            padding: 20px;
+        }
+        
+        .philosophy-content blockquote::before {
+            content: '“';
+            font-size: 5rem;
+            color: var(--primary-blue);
+            opacity: 0.2;
+            position: absolute;
+            top: -10px;
+            left: -10px;
+        }
+
+        /* --- CONTACT SECTION (UPDATED) --- */
+        #contact {
+            background-color: var(--dark-text);
+            color: var(--white);
+        }
+
+        #contact .section-title {
+             color: var(--white);
+        }
+        
+        #contact .section-subtitle {
+             color: rgba(255, 255, 255, 0.7);
+        }
+
+        .contact-content {
+            text-align: center;
+        }
+        
+        .contact-content p {
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .contact-details {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.15rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .contact-item svg {
+            color: var(--primary-blue);
+        }
+
+        /* --- FOOTER --- */
+        .footer {
+            text-align: center;
+            padding: 25px 0;
+            background-color: #1c1f23;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        /* --- RESPONSIVE DESIGN --- */
+        @media (max-width: 992px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .hero-image-container {
+                order: -1; 
+                margin-bottom: 40px;
+            }
+            .hero-img {
+                width: 250px;
+                height: 250px;
+            }
+            .hero-text h1 {
+                font-size: 2.8rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+             .section-title {
+                font-size: 2.2rem;
+            }
+            .nav-menu {
+                display: none;
+            }
+            .contact-details {
+                flex-direction: column;
+                gap: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <nav class="container navbar">
+            <a href="#" class="nav-logo">Cao Thi Que</a>
+            <ul class="nav-menu">
+                <li><a href="#about" class="nav-link">About</a></li>
+                <li><a href="#skills" class="nav-link">Skills</a></li>
+                <li><a href="#projects" class="nav-link">Projects</a></li>
+                <li><a href="#contact" class="nav-link">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="container hero-grid fade-in">
+                <div class="hero-text">
+                    <p class="greeting">Hello, I'm</p>
+                    <h1>Cao Thi Que</h1>
+                    <p class="subtitle">IT Business Analyst</p>
+                    <p class="description">
+                        Bridging business needs and technology to create practical, user-focused solutions.
+                    </p>
+                </div>
+                <div class="hero-image-container">
+                    <!-- UPDATED AVATAR IMAGE -->
+                    <img src="https://i.ibb.co/yYwDqYn/cute-cat-avatar.jpg" alt="Avatar" class="hero-img">
+                </div>
+            </div>
+        </section>
+
+        <section id="about">
+            <div class="container fade-in">
+                <h2 class="section-title">About Me</h2>
+                <p class="section-subtitle">My professional background</p>
+                <div class="about-content">
+                    <p>
+                        I am an experienced IT Business Analyst, specializing in digitalizing business processes and integrating systems, with a strong focus on omni-channel platforms. I act as a bridge between business teams and technical teams, turning complex requirements into clear, practical, and user-friendly solutions that improve operational efficiency and deliver real business value.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="skills">
+            <div class="container fade-in">
+                <h2 class="section-title">Core Skills</h2>
+                <p class="section-subtitle">What I do best</p>
+                <div class="skills-grid">
+                    <div class="skill-card">
+                        <div class="skill-icon">📊</div>
+                        <h3>Business Analysis & Process Design</h3>
+                        <p>Gathering requirements, mapping As-Is/To-Be processes, performing gap analysis, and managing stakeholders.</p>
+                    </div>
+                    <div class="skill-card">
+                        <div class="skill-icon">✍️</div>
+                        <h3>System & Process Modeling</h3>
+                        <p>Using BPMN and UML (Use Case, Activity, Sequence Diagrams) to visualize and define system logic and workflows.</p>
+                    </div>
+                    <div class="skill-card">
+                        <div class="skill-icon">📘</div>
+                        <h3>Documentation & Enablement</h3>
+                        <p>Creating clear BRD, URD, SRS, User Stories, and user guides. I also provide training to ensure smooth user adoption.</p>
+                    </div>
+                    <div class="skill-card">
+                        <div class="skill-icon">🛠️</div>
+                        <h3>Technical Skills & Tools</h3>
+                        <p>Proficient with Data Modeling, SQL, API integration, and prototyping tools like Figma & Balsamiq.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="projects">
+            <div class="container fade-in">
+                <h2 class="section-title">Demo Projects</h2>
+                <p class="section-subtitle">A selection of my work</p>
+                <div class="projects-grid">
+                    <div class="project-card">
+                        <h3>Omni-channel Marketing Platform Integration (Meta)</h3>
+                        <p>A solution to centralize customer data from Meta platforms to improve marketing efficiency and data accuracy.</p>
+                        <ul>
+                            <li>Integrated Facebook Lead Ads Form for automatic lead capture.</li>
+                            <li>Set up Conversion API for accurate tracking and ad optimization.</li>
+                        </ul>
+                    </div>
+                     <div class="project-card">
+                        <h3>Centralized Chat Routing & Management System</h3>
+                        <p>Designed a system to consolidate customer chats from multiple channels into one unified dashboard for the support team.</p>
+                        <ul>
+                            <li>Analyzed requirements and pain points from the customer support team.</li>
+                            <li>Mapped the complete chat routing logic and agent workflows using BPMN.</li>
+                            <li>Created wireframes for the agent dashboard to ensure usability.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="philosophy">
+            <div class="container fade-in">
+                 <h2 class="section-title">Working Philosophy</h2>
+                 <p class="section-subtitle">My approach to analysis</p>
+                <div class="philosophy-content">
+                    <blockquote>
+                        "Successful technology solutions start with a deep understanding of users and the business problems they face. Clear requirements are the foundation of great products."
+                    </blockquote>
+                </div>
+            </div>
+        </section>
+
+        <!-- UPDATED CONTACT SECTION -->
+        <section id="contact">
+            <div class="container fade-in">
+                <h2 class="section-title">Get In Touch</h2>
+                <p class="section-subtitle">Let's connect</p>
+                <div class="contact-content">
+                    <p>Feel free to reach out for collaborations or any inquiries.</p>
+                    <div class="contact-details">
+                        <div class="contact-item">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-envelope-fill" viewBox="0 0 16 16"><path d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414.05 3.555zM0 4.697v7.104l5.803-3.558L0 4.697zM6.761 8.83l-6.57 4.027A2 2 0 0 0 2 14h12a2 2 0 0 0 1.808-1.144l-6.57-4.027L8 9.586l-1.239-.757zm3.436-.586L16 11.803V4.697l-5.803 3.558z"/></svg>
+                             <span>quecao08@gmail.com</span>
+                        </div>
+                        <div class="contact-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-telephone-fill" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.885.511a1.745 1.745 0 0 1 2.61.163L6.29 2.98c.329.423.445.974.28 1.464l-2.094 2.094a.25.25 0 0 0 .022.286l3.686 3.686a.25.25 0 0 0 .286.022l2.094-2.094c.49-.165 1.041-.049 1.464.28l2.296 2.296c.253.253.345.624.23 1.003l-1.068 2.295c-.145.312-.42.56-.742.664-1.353.364-2.894-.213-4.282-1.601C3.145 12.87 1.63 10.334.364 8.983c-.104-.322-.352-.6-.664-.742L.51 7.175a1.47 1.47 0 0 1 1.003-.23l2.296-1.068c.379-.115.75-.023 1.003.23z"/></svg>
+                            <span>0962.725.732</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Cao Thi Que. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const faders = document.querySelectorAll('.fade-in');
+        const appearOptions = {
+            threshold: 0.1,
+            rootMargin: "0px 0px -50px 0px"
+        };
+        const appearOnScroll = new IntersectionObserver(function(entries, appearOnScroll) {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) {
+                    return;
+                } else {
+                    entry.target.classList.add('visible');
+                    appearOnScroll.unobserve(entry.target);
+                }
+            });
+        }, appearOptions);
+        faders.forEach(fader => {
+            appearOnScroll.observe(fader);
+        });
+    </script>
+
+</body>
+</html>

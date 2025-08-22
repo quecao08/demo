@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP - Cấu hình Meta CAPI</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --bg-color: #f4f6f9;
+            --card-bg-color: #ffffff;
+            --text-color: #333;
+            --text-muted-color: #6c757d;
+            --border-color: #dee2e6;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 960px;
+            margin: auto;
+            background-color: var(--card-bg-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.75rem;
+        }
+        .header p {
+            margin: 0;
+            color: var(--text-muted-color);
+        }
+        .main-content {
+            padding: 2rem;
+        }
+        .connection-status {
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .connection-status.connected { background-color: #e9f5ec; border: 1px solid #a3d9b1; }
+        .connection-status.disconnected { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .connection-status-info { display: flex; align-items: center; }
+        .status-icon { font-size: 1.5rem; margin-right: 1rem; }
+        .status-icon.success { color: var(--success-color); }
+        .status-icon.error { color: var(--error-color); }
+        .status-text strong { display: block; font-size: 1.1rem; }
+        .status-text span { color: var(--text-muted-color); font-size: 0.9rem; }
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-outline { background-color: transparent; color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-outline:hover { background-color: var(--primary-color); color: white; }
+        
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--text-muted-color);
+            position: relative;
+            font-weight: 500;
+        }
+        .tab-btn.active {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 3px 3px 0 0;
+        }
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .section-title {
+            font-size: 1.25rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .event-card {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .event-info {
+            flex-grow: 1;
+        }
+        .event-info h4 { margin: 0 0 0.25rem 0; font-size: 1.1rem; }
+        .event-info p { margin: 0; color: var(--text-muted-color); font-size: 0.9rem; }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--success-color);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .log-table th, .log-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+        .log-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .status-badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+        .status-badge.success { background-color: var(--success-color); }
+        .status-badge.error { background-color: var(--error-color); }
+        .text-monospace { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 0.85rem;}
+        
+        .simulator {
+            text-align: center;
+            padding: 0 2rem 1rem;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="header">
+        <h1>Tích hợp Meta Conversions API</h1>
+        <p>Gửi dữ liệu chuyển đổi từ SOP trực tiếp về Meta để đo lường hiệu quả quảng cáo chính xác hơn.</p>
+    </header>
+
+    <main class="main-content">
+        <!-- Trạng thái kết nối -->
+        <div id="connection-status-container">
+            <!-- Trạng thái đã kết nối -->
+            <div id="connected-view" class="connection-status connected">
+                <div class="connection-status-info">
+                    <span class="status-icon success">✓</span>
+                    <div class="status-text">
+                        <strong>Đã kết nối với Meta</strong>
+                        <span>Pixel đang hoạt động: <strong>SOP Main Pixel</strong> (ID: 1234567890123456)</span>
+                    </div>
+                </div>
+                <button class="btn btn-secondary">Quản lý kết nối</button>
+            </div>
+            <!-- Trạng thái mất kết nối -->
+            <div id="disconnected-view" class="connection-status disconnected" style="display: none;">
+                <div class="connection-status-info">
+                    <span class="status-icon error">!</span>
+                    <div class="status-text">
+                        <strong>Mất kết nối với Meta</strong>
+                        <span>Access token đã hết hạn hoặc bị thu hồi. Vui lòng kết nối lại.</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary">Kết nối lại ngay</button>
+            </div>
+        </div>
+
+        <!-- Điều hướng Tab -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="config-tab">Cấu hình & Sự kiện</button>
+            <button class="tab-btn" data-tab="log-tab">Lịch sử & Gỡ lỗi</button>
+        </nav>
+
+        <!-- Nội dung Tab -->
+        <div style="padding-top: 2rem;">
+            <!-- Tab 1: Cấu hình Sự kiện -->
+            <div id="config-tab" class="tab-pane active">
+                <h3 class="section-title">Quản lý các sự kiện gửi về Meta</h3>
+                <p style="color: var(--text-muted-color); margin-top: -1rem; margin-bottom: 1.5rem;">Chọn và bật các sự kiện bạn muốn SOP tự động gửi về Meta khi có hành động tương ứng.</p>
+
+                <div class="event-card">
+                    <div class="event-info">
+                        <h4>Sự kiện Mua hàng (Purchase)</h4>
+                        <p>Gửi khi một đơn hàng được tạo hoặc đánh dấu "Hoàn tất" trong SOP.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="event-card">
+                    <div class="event-info">
+                        <h4>Sự kiện Khách hàng tiềm năng (Lead)</h4>
+                        <p>Gửi khi khách hàng để lại thông tin liên hệ (SĐT, Email) trong cuộc chat.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                 <div class="event-card">
+                    <div class="event-info">
+                        <h4>Sự kiện Thêm vào giỏ hàng (AddToCart)</h4>
+                        <p>Gửi khi nhân viên thêm sản phẩm vào đơn hàng nháp cho khách.</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tab 2: Giám sát & Gỡ lỗi -->
+            <div id="log-tab" class="tab-pane">
+                <div class="test-events-section">
+                    <h3 class="section-title">Kiểm tra kết nối (Test Events)</h3>
+                    <p style="color: var(--text-muted-color); margin-top: -1rem; margin-bottom: 1.5rem;">
+                        Sử dụng công cụ "Test Events" trong Trình quản lý sự kiện của Meta để xác nhận server của bạn đang gửi sự kiện đúng cách.
+                        <a href="#" target="_blank">Xem hướng dẫn</a>
+                    </p>
+                    <div class="form-group">
+                        <label for="test-code">Mã Test Event (test_event_code)</label>
+                        <input type="text" id="test-code" class="form-control" placeholder="Dán mã test từ Meta vào đây...">
+                    </div>
+                    <button class="btn btn-outline">Gửi sự kiện Test Purchase</button>
+                </div>
+
+                <div class="event-log-section" style="margin-top: 3rem;">
+                     <h3 class="section-title">Lịch sử gửi sự kiện</h3>
+                     <table class="log-table">
+                         <thead>
+                             <tr>
+                                 <th>Thời gian</th>
+                                 <th>Loại sự kiện</th>
+                                 <th>Trạng thái</th>
+                                 <th>Chi tiết / Mã lỗi</th>
+                             </tr>
+                         </thead>
+                         <tbody>
+                            <tr>
+                                <td>2023-10-27 15:30:05</td>
+                                <td>Purchase</td>
+                                <td><span class="status-badge success">Thành công</span></td>
+                                <td class="text-monospace">fbtrace_id: Axxxxxxxxxxxxx</td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-27 15:28:10</td>
+                                <td>Lead</td>
+                                <td><span class="status-badge success">Thành công</span></td>
+                                <td class="text-monospace">fbtrace_id: Bxxxxxxxxxxxxx</td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-27 14:05:22</td>
+                                <td>Purchase</td>
+                                <td><span class="status-badge error">Thất bại</span></td>
+                                <td class="text-monospace">Invalid parameter: currency</td>
+                            </tr>
+                             <tr>
+                                <td>2023-10-26 18:15:00</td>
+                                <td>Purchase</td>
+                                <td><span class="status-badge success">Thành công</span></td>
+                                <td class="text-monospace">fbtrace_id: Cxxxxxxxxxxxxx</td>
+                            </tr>
+                         </tbody>
+                     </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<div class="simulator">
+    <p>Công cụ mô phỏng:</p>
+    <button id="toggle-connection-btn" class="btn btn-sm btn-secondary">Mô phỏng Mất kết nối</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panes = document.querySelectorAll('.tab-pane');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            panes.forEach(p => p.classList.remove('active'));
+
+            tab.classList.add('active');
+            const targetPane = document.getElementById(tab.dataset.tab);
+            if (targetPane) {
+                targetPane.classList.add('active');
+            }
+        });
+    });
+
+    const toggleConnectionBtn = document.getElementById('toggle-connection-btn');
+    const connectedView = document.getElementById('connected-view');
+    const disconnectedView = document.getElementById('disconnected-view');
+    let isConnected = true;
+
+    toggleConnectionBtn.addEventListener('click', () => {
+        isConnected = !isConnected;
+        if (isConnected) {
+            connectedView.style.display = 'flex';
+            disconnectedView.style.display = 'none';
+            toggleConnectionBtn.textContent = 'Mô phỏng Mất kết nối';
+        } else {
+            connectedView.style.display = 'none';
+            disconnectedView.style.display = 'flex';
+            toggleConnectionBtn.textContent = 'Mô phỏng Kết nối lại';
+        }
+    });
+});
+</script>
+
+</body>
+</html>

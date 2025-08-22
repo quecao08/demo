@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototype v7 - Cấu hình chia hội thoại (Final & Bug-Fixed)</title>
+    <style>
+        :root {
+            --primary-color: #007bff; --secondary-color: #6c757d; --danger-color: #dc3545; --light-color: #f8f9fa;
+            --dark-color: #343a40; --border-color: #dee2e6; --background-color: #f1f3f6; --text-color: #212529;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; --border-radius: 6px; --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        body { font-family: var(--font-family); background-color: var(--background-color); margin: 0; padding: 2rem; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-container { background-color: white; border-radius: var(--border-radius); box-shadow: var(--box-shadow); width: 90%; max-width: 850px; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+        .modal-body { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem; background-color: var(--light-color); border-bottom-left-radius: var(--border-radius); border-bottom-right-radius: var(--border-radius); }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; }
+        .form-control { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); font-size: 1rem; box-sizing: border-box; background-color: #fff; }
+        .required-mark { color: var(--danger-color); margin-left: 2px; }
+        .btn { padding: 0.6rem 1.2rem; font-size: 1rem; border-radius: var(--border-radius); border: 1px solid transparent; cursor: pointer; font-weight: 500; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-light { background-color: #e2e6ea; color: var(--dark-color); border-color: #dae0e5; }
+        .btn-link { background: none; border: none; color: var(--primary-color); font-weight: 600; cursor: pointer; padding: 0; }
+        .rule-section { background-color: var(--light-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); margin-bottom: 1.5rem; }
+        .rule-section-header { padding: 0.75rem 1.25rem; font-size: 1.1rem; font-weight: 600; background-color: #e9ecef; border-bottom: 1px solid var(--border-color); border-top-left-radius: var(--border-radius); border-top-right-radius: var(--border-radius); }
+        .rule-section-content { padding: 1.25rem; }
+        .condition-group { border: 1px dashed var(--border-color); padding: 1rem; border-radius: var(--border-radius); margin-bottom: 1rem; position: relative; }
+        .action-block { border: 1px solid var(--border-color); background-color: #fff; padding: 1rem; border-radius: var(--border-radius); margin-bottom: 1rem; position: relative; }
+        .condition-separator, .group-separator { display: flex; align-items: center; text-align: center; margin: 1rem 0; font-weight: 600; color: var(--secondary-color); }
+        .condition-separator::before, .condition-separator::after, .group-separator::before, .group-separator::after { content: ''; flex: 1; border-bottom: 1px dashed var(--border-color); }
+        .group-separator::before, .group-separator::after { border-style: solid; border-width: 2px; }
+        .condition-separator span, .group-separator span { padding: 0 1rem; }
+        .condition-row { display: flex; gap: 0.75rem; align-items: flex-start; }
+        .condition-row .condition-type { flex-basis: 30%; flex-shrink: 0; }
+        .condition-row .condition-operator { flex-basis: 25%; flex-shrink: 0; }
+        .condition-row .condition-value { flex-grow: 1; }
+        .remove-btn, .remove-condition-row-btn { background: none; border: none; cursor: pointer; padding: 0; color: var(--secondary-color); }
+        .remove-btn:hover, .remove-condition-row-btn:hover { color: var(--danger-color); }
+        .remove-btn svg { width: 20px; height: 20px; vertical-align: middle; position: absolute; top: 10px; right: 10px; }
+        .remove-condition-row-btn { position: static; margin-left: 8px; line-height: 1; align-self: center;}
+        .remove-condition-row-btn svg { width: 20px; height: 20px; vertical-align: middle; }
+        .action-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+        .action-label { font-weight: 500; flex-basis: 180px; flex-shrink: 0; }
+        .action-input { flex-grow: 1; }
+        .optional-condition { padding: 1rem; border-left: 2px solid var(--primary-color); margin-top: 1rem; position: relative; background-color: #fdfdfd; }
+        .time-input-group { display: flex; align-items: center; gap: 0.5rem; }
+        .time-input-group input { width: 80px; }
+        .add-optional-condition-group { padding-left: 190px; display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-top: 0.5rem;}
+        .custom-multiselect-container { position: relative; width: 100%; }
+        .multiselect-input { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: var(--border-radius); min-height: 42px; cursor: pointer; background-color: #fff; }
+        .tag-pill { display: inline-flex; align-items: center; background-color: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; }
+        .tag-pill .remove-tag-btn { margin-left: 8px; cursor: pointer; font-weight: bold; background: none; border: none; padding: 0; line-height: 1; }
+        .option-item { padding: 10px 12px; cursor: pointer; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <button class="btn btn-primary" onclick="openModal()">Mở Popup Cấu hình (v7)</button>
+
+    <div class="modal-overlay hidden" id="ruleModal">
+        <div class="modal-container">
+            <div class="modal-header"><h2>Cấu hình chia hội thoại</h2><button style="background:none;border:none;cursor:pointer;padding:0" onclick="closeModal()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button></div>
+            <div class="modal-body">
+                <div class="form-group"><label for="ruleName">Tên quy tắc <span class="required-mark">*</span></label><input type="text" id="ruleName" class="form-control" placeholder="Ví dụ: Quy tắc chia cho team Sales Hà Nội" maxlength="255" required><div style="font-size:0.8rem;text-align:right;margin-top:4px;color:var(--secondary-color)">0/255</div></div>
+                <div class="rule-section"><div class="rule-section-header">Hội thoại thỏa mãn điều kiện</div><div class="rule-section-content" id="condition-groups-container"></div><div style="padding:0 1.25rem 1.25rem;"><button class="btn btn-light" onclick="addConditionGroup()">+ Thêm nhóm điều kiện</button></div></div>
+                <div class="rule-section"><div class="rule-section-header">Thì thực hiện hành động sau</div><div class="rule-section-content" id="actions-container"></div><div style="padding:0 1.25rem 1.25rem;"><button class="btn btn-light" onclick="addAction()">+ Thêm hành động</button></div></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-light" onclick="closeModal()">Hủy</button><button class="btn btn-primary" onclick="saveRule()">Lưu</button></div>
+        </div>
+    </div>
+
+<script>
+    // --- Global Variables & Basic Modal Control ---
+    const modal = document.getElementById('ruleModal');
+    function openModal() { modal.classList.remove('hidden'); initializeForm(); }
+    function closeModal() { modal.classList.add('hidden'); }
+    function saveRule() { const ruleNameInput = document.getElementById('ruleName'); if (!ruleNameInput.value.trim()) { alert('Vui lòng nhập Tên quy tắc!'); ruleNameInput.focus(); } else { alert('Lưu quy tắc thành công!'); closeModal(); } }
+    document.getElementById('ruleName').addEventListener('input', (e) => { e.target.nextElementSibling.textContent = `${e.target.value.length}/255`; });
+
+    // --- HTML TEMPLATES (Defined once for reusability and to prevent string errors) ---
+    const conditionOptions = [ { value: 'from_page', text: 'Tin nhắn từ trang' }, { value: 'forward_reason', text: 'Lý do chuyển tiếp của nhân viên' }, { value: 'form_selection', text: 'Lựa chọn trên form' }, { value: 'keyword', text: 'Từ khóa trong tin nhắn' }, { value: 'source', text: 'Nguồn gốc của hội thoại' }, ];
+    const multiSelectData = { from_page: [ { value: 'page_fpt_vn', text: 'fpt.vn (Website)' }, { value: 'page_fpt_camera', text: 'fptcamera (Facebook)'}, { value: 'page_fpt_shop', text: 'FPT Shop (Facebook)' }, { value: 'page_fpt_hn', text: 'FPT Hà Nội (Zalo OA)' }, { value: 'page_fpt_telecom', text: 'FPT Telecom (Zalo OA)' } ], forward_reason: [ { value: 'transfer_reason_sales', text: 'Tư vấn bán hàng' }, { value: 'transfer_reason_support', text: 'Hỗ trợ kỹ thuật' }, { value: 'transfer_reason_escalate', text: 'Bàn giao cho cấp trên' } ], form_selection: [ { value: 'topic_complaint', text: 'Khiếu nại, báo hỏng' }, { value: 'topic_change_info', text: 'Thay đổi thông tin' }, { value: 'topic_new_service', text: 'Đăng ký dịch vụ mới' } ] };
+    const TRASH_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M7 21q-.825 0-1.412-.587Q5 19.825 5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413Q17.825 21 17 21ZM17 6H7v13h10Z"></path></svg>`;
+    const REROUTE_SUB_CONDITION_HTML = `<div class="optional-condition" data-type="reroute"><button class="remove-btn" type="button" onclick="removeOptionalActionCondition(this)">${TRASH_ICON_SVG}</button><div class="action-row"><div class="action-label">Chia lại nếu không phản hồi sau <span class="required-mark">*</span></div><div class="action-input"><div class="time-input-group"><input type="number" class="form-control" placeholder="15" min="1"><select class="form-control"><option>Phút</option><option>Giờ</option></select></div></div></div><div class="action-row"><div class="action-label">Chia lại tối đa <span class="required-mark">*</span></div><div class="action-input"><div class="time-input-group"><input type="number" class="form-control" placeholder="3" min="1"><span style="margin-left: 8px;">Lượt</span></div></div></div><div class="action-row"><div class="action-label">Chỉ định nhân viên cụ thể</div><div class="action-input"><input type="text" class="form-control" placeholder="Chọn nhân viên..."></div></div></div>`;
+    const VISIBILITY_SUB_CONDITION_HTML = `<div class="optional-condition" data-type="visibility"><button class="remove-btn" type="button" onclick="removeOptionalActionCondition(this)">${TRASH_ICON_SVG}</button><div class="action-row"><div class="action-label">Nội dung tin nhắn</div><div class="action-input"><select class="form-control"><option>Ẩn nội dung tin nhắn khi nhân viên chưa nhận chat</option><option>Không ẩn nội dung tin nhắn</option></select></div></div></div>`;
+    
+    // --- Helper Functions to Create Elements ---
+    function createRemoveBtnHTML(onclickFn) { return `<button class="remove-btn" type="button" onclick="${onclickFn}">${TRASH_ICON_SVG}</button>`; }
+    function createValueInput(type) {
+        if (['from_page', 'forward_reason', 'form_selection'].includes(type)) {
+            const optionsHTML = multiSelectData[type].map(opt => `<div class="option-item" data-value="${opt.value}" onclick="selectOption(event, this)">${opt.text}</div>`).join('');
+            return `<div class="custom-multiselect-container"><div class="multiselect-input" onclick="toggleDropdown(this)"><div class="selected-tags"></div><span style="color:#6c757d;font-size:1rem;padding:5px 0;">Chọn một hoặc nhiều...</span></div><div class="options-list hidden" style="position:absolute;top:100%;left:0;right:0;background-color:#fff;border:1px solid var(--border-color);border-top:none;z-index:1001;max-height:200px;overflow-y:auto;">${optionsHTML}</div></div>`;
+        }
+        if (type === 'keyword') return `<input type="text" class="form-control" placeholder="vd: khuyến mãi, bảo hành, ...">`;
+        if (type === 'source') return `<select class="form-control"><option>Bình luận từ bài viết</option><option>Khách hàng nhấp vào quảng cáo</option><option>Kích hoạt chiến dịch gửi tin</option></select>`;
+        return '';
+    }
+
+    // --- Core Logic for Conditions ---
+    function updateConditionValue(selectElement) { selectElement.closest('.condition-row').querySelector('.condition-value').innerHTML = createValueInput(selectElement.value); }
+    function createConditionRowHTML() {
+        const optionsHTML = conditionOptions.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
+        const operatorHTML = `<select class="form-control"><option value="equal">Bằng</option><option value="not_equal">Không bằng</option></select>`;
+        return `<div class="condition-row"><select class="form-control condition-type" onchange="updateConditionValue(this)">${optionsHTML}</select><div class="condition-operator">${operatorHTML}</div><div class="condition-value">${createValueInput(conditionOptions[0].value)}</div></div>`;
+    }
+    function addCondition(button) {
+        const list = button.closest('.condition-group').querySelector('.conditions-list');
+        list.insertAdjacentHTML('beforeend', '<div class="condition-separator"><span>VÀ</span></div>');
+        const newRow = document.createElement('div');
+        newRow.innerHTML = createConditionRowHTML();
+        newRow.firstElementChild.appendChild(createRemoveConditionRowButton());
+        list.appendChild(newRow.firstElementChild);
+    }
+    function createConditionGroupHTML(isFirst = false) { return `<div class="condition-group">${!isFirst ? createRemoveBtnHTML('removeElement(this, \".condition-group\")') : ''}<div class="conditions-list">${createConditionRowHTML()}</div><div style="margin-top:1rem;"><button class="btn-link" onclick="addCondition(this)">+ Thêm điều kiện</button></div></div>`; }
+    function addConditionGroup() { document.getElementById('condition-groups-container').insertAdjacentHTML('beforeend', `<div class="group-separator"><span>HOẶC</span></div>${createConditionGroupHTML()}`); }
+
+    // --- Core Logic for Actions ---
+    function createMainActionBlocksHTML() {
+        return `
+        <div class="action-block">
+            <div class="action-row"><div class="action-label">Hành động</div><div class="action-input"><select class="form-control" disabled><option>Chia hội thoại</option></select></div></div>
+            <div class="action-row"><label class="action-label">Đối tượng nhận hội thoại</label><div class="action-input"><input type="text" class="form-control" placeholder="Chọn Nhân viên, Nhóm, Cơ cấu..."></div></div>
+        </div>
+        <div class="action-block">
+            <div class="action-row"><div class="action-label">Phương thức chia</div><div class="action-input" style="display:flex;gap:1.5rem;"><label><input type="radio" name="sharingMethod" value="round_robin" checked onchange="toggleSharingOptions(this.value)"> Chia xoay vòng</label><label><input type="radio" name="sharingMethod" value="manual_pickup" onchange="toggleSharingOptions(this.value)"> Tự nhận hội thoại</label></div></div>
+            <div class="optional-conditions-container"></div>
+            <div id="round-robin-buttons" class="add-optional-condition-group"><button class="btn-link" data-controls="reroute" onclick="addOptionalActionCondition(this, 'reroute')">+ Thêm điều kiện "Chia lại nếu nhân viên không phản hồi"</button></div>
+            <div id="manual-pickup-buttons" class="add-optional-condition-group hidden"><button class="btn-link" data-controls="reroute" onclick="addOptionalActionCondition(this, 'reroute')">+ Thêm điều kiện "Chia lại nếu nhân viên không phản hồi"</button><button class="btn-link" data-controls="visibility" onclick="addOptionalActionCondition(this, 'visibility')">+ Thêm điều kiện "Nội dung tin nhắn"</button></div>
+        </div>`;
+    }
+    function createSecondaryActionBlockHTML() { return `<div class="action-block">${createRemoveBtnHTML('removeElement(this, \".action-block\")')}<div class="action-row"><div class="action-label">Hành động</div><div class="action-input"><select class="form-control"><option value="add_tag">Gắn nhãn</option><option value="send_notification">Gửi thông báo</option></select></div></div><div class="action-row"><label class="action-label">Giá trị</label><div class="action-input"><input type="text" class="form-control" placeholder="Chọn hoặc nhập nhãn..."></div></div></div>`; }
+    function addAction() { document.getElementById('actions-container').insertAdjacentHTML('beforeend', createSecondaryActionBlockHTML()); }
+    function toggleSharingOptions(method) {
+        document.getElementById('round-robin-buttons').classList.toggle('hidden', method !== 'round_robin');
+        document.getElementById('manual-pickup-buttons').classList.toggle('hidden', method !== 'manual_pickup');
+        document.querySelector('.action-block .optional-conditions-container').innerHTML = '';
+        document.querySelectorAll('#round-robin-buttons button, #manual-pickup-buttons button').forEach(btn => btn.classList.remove('hidden'));
+    }
+    function addOptionalActionCondition(button, conditionKey) {
+        const htmlToAdd = conditionKey === 'reroute' ? REROUTE_SUB_CONDITION_HTML : VISIBILITY_SUB_CONDITION_HTML;
+        button.closest('.action-block').querySelector('.optional-conditions-container').insertAdjacentHTML('beforeend', htmlToAdd);
+        button.classList.add('hidden');
+    }
+    function removeOptionalActionCondition(removeBtn) {
+        const optionalCondition = removeBtn.closest('.optional-condition');
+        const type = optionalCondition.dataset.type;
+        optionalCondition.closest('.action-block').querySelector(`.btn-link[data-controls="${type}"]`)?.classList.remove('hidden');
+        optionalCondition.remove();
+    }
+    
+    // --- General Helper & Component JS ---
+    function createRemoveConditionRowButton() { const btn = document.createElement('button'); btn.className = 'remove-condition-row-btn'; btn.type = 'button'; btn.onclick = () => removeElement(btn, '.condition-row'); btn.innerHTML = TRASH_ICON_SVG; return btn; }
+    function removeElement(element, selector) { const el = element.closest(selector); const prev = el.previousElementSibling; if (prev && prev.classList.contains('condition-separator')) prev.remove(); el.remove(); }
+    function toggleDropdown(inputElement) { inputElement.closest('.custom-multiselect-container').querySelector('.options-list').classList.toggle('hidden'); }
+    function selectOption(event, optionElement) { event.stopPropagation(); const container = optionElement.closest('.custom-multiselect-container'); const newTag = document.createElement('div'); newTag.className = 'tag-pill'; newTag.dataset.value = optionElement.dataset.value; newTag.innerHTML = `<span>${optionElement.textContent}</span><button type="button" class="remove-tag-btn" onclick="removeTag(event, this)">&times;</button>`; container.querySelector('.selected-tags').appendChild(newTag); optionElement.classList.add('hidden'); container.querySelector('.multiselect-placeholder')?.classList.add('hidden'); }
+    function removeTag(event, buttonElement) { event.stopPropagation(); const tag = buttonElement.closest('.tag-pill'); const container = tag.closest('.custom-multiselect-container'); const optionToRestore = container.querySelector(`.option-item[data-value="${tag.dataset.value}"]`); if (optionToRestore) optionToRestore.classList.remove('hidden'); tag.remove(); if (container.querySelector('.selected-tags').childElementCount === 0) container.querySelector('.multiselect-placeholder')?.classList.remove('hidden'); }
+    document.addEventListener('click', (event) => { document.querySelectorAll('.custom-multiselect-container').forEach(c => { if (!c.contains(event.target)) c.querySelector('.options-list')?.classList.add('hidden'); }); });
+
+    // --- Initialization ---
+    function initializeForm() {
+        document.getElementById('ruleName').value = '';
+        document.querySelector('#ruleName + div').textContent = '0/255';
+        document.getElementById('condition-groups-container').innerHTML = createConditionGroupHTML(true);
+        document.getElementById('actions-container').innerHTML = createMainActionBlocksHTML();
+    }
+    document.addEventListener('DOMContentLoaded', initializeForm);
+</script>
+
+</body>
+</html>

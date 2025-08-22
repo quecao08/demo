@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP CAPI Integration Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-gray: #f8f9fa;
+            --gray: #6c757d;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--light-gray);
+            color: #333;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        header h1 {
+            margin-top: 0;
+            font-size: 1.75rem;
+            color: #212529;
+        }
+        header p {
+            color: var(--gray);
+            margin-bottom: 2rem;
+        }
+
+        .connection-box {
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .connection-box.disconnected {
+            background-color: #e9ecef;
+            border: 1px solid var(--border-color);
+        }
+        .connection-box.connected {
+            background-color: #eaf6ec;
+            border: 1px solid #a3d9b1;
+        }
+
+        .connection-info .status { font-weight: bold; }
+        .connection-info .status.connected { color: var(--success-color); }
+        .connection-info .details { font-size: 0.9rem; color: var(--gray); }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-primary { background-color: var(--primary-color); color: #fff; }
+        .btn-primary:hover { background-color: #0069d9; }
+        .btn-danger { background-color: var(--danger-color); color: #fff; }
+        .btn-danger:hover { background-color: #c82333; }
+        
+        #config-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+        }
+
+        .website-config {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .website-header {
+            background-color: var(--light-gray);
+            padding: 1rem 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .website-header i { margin-right: 0.75rem; }
+        
+        .config-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: #fff;
+            font-size: 1rem;
+        }
+
+        .status-indicator {
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+        .status-indicator i { margin-right: 0.75rem; font-size: 1.1rem; }
+        .status-indicator.verified { background-color: #eaf6ec; color: #1c7430; border: 1px solid #a3d9b1; }
+        .status-indicator.warning { background-color: #fff8e6; color: #856404; border: 1px solid #ffde7a; }
+        .status-indicator.error { background-color: #fbeaed; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            margin-top: 2rem;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+            margin-right: 1rem;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px; width: 20px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--success-color); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .toggle-label { font-weight: 500; }
+        
+        .toggle-description {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-top: 0.75rem;
+            padding: 1rem;
+            background-color: var(--light-gray);
+            border-radius: 5px;
+        }
+
+        #script-container pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: "Courier New", Courier, monospace;
+        }
+
+        .feedback {
+            margin-top: 1rem;
+            text-align: right;
+            font-style: italic;
+            color: var(--gray);
+            height: 1.2rem;
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Tích hợp Meta Conversions API</h1>
+        <p>Gửi dữ liệu chuyển đổi từ SOP trực tiếp về Meta để đo lường hiệu quả quảng cáo chính xác hơn.</p>
+    </header>
+
+    <div id="connection-box" class="connection-box disconnected">
+        <div class="connection-info">
+            <span id="connection-status" class="status">Chưa kết nối với Meta</span>
+            <div id="connection-details" class="details">Kết nối để bắt đầu cấu hình gửi sự kiện.</div>
+        </div>
+        <button id="connect-btn" class="btn btn-primary">Kết nối với Meta</button>
+    </div>
+
+    <section id="config-section" class="hidden">
+        <h2>Quản lý cấu hình Pixel cho Website</h2>
+        
+        <div class="website-config">
+            <div class="website-header">
+                <i class="fas fa-globe"></i>
+                <span id="website-url">www.mycoolshop.com</span>
+            </div>
+            <div class="config-body">
+                <!-- Kịch bản 1: Chọn và xác thực Pixel đã cài -->
+                <div id="scenario1">
+                    <h4>1. Chọn Pixel để gửi sự kiện CAPI</h4>
+                    <p class="details">Hãy chọn đúng Pixel bạn đang sử dụng trên website của mình để SOP gửi dữ liệu server-side bổ sung.</p>
+                    <div class="form-group">
+                        <label for="pixel-selector">Meta Pixel</label>
+                        <select id="pixel-selector">
+                            <option value="">-- Vui lòng chọn Pixel --</option>
+                        </select>
+                        <div id="status-indicator" class="status-indicator hidden"></div>
+                    </div>
+                </div>
+                
+                <hr>
+
+                <!-- Kịch bản 2: Cho phép SOP quản lý Pixel trên website -->
+                <div id="scenario2" class="hidden">
+                    <h4>2. Tự động cài đặt Pixel qua Widget SOP</h4>
+                    <div class="toggle-group">
+                        <label class="switch">
+                            <input type="checkbox" id="manage-pixel-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label">Để SOP quản lý Meta Pixel trên website của bạn</span>
+                    </div>
+                    <div id="toggle-description" class="toggle-description">
+                        Khi bật tính năng này, bạn sẽ không cần phải tự cài đặt mã Meta Pixel nữa. Đoạn mã script của SOP sẽ tự động bao gồm cả widget và Pixel.
+                    </div>
+                    <div id="script-container" class="hidden">
+                         <p class="details" style="margin-top:1rem; color:var(--danger-color); font-weight:bold;">
+                             <i class="fas fa-exclamation-triangle"></i> Quan trọng: Hãy gỡ bỏ mọi đoạn mã Meta Pixel cũ trên website của bạn và thay thế bằng đoạn mã duy nhất dưới đây để tránh theo dõi trùng lặp.
+                         </p>
+                         <pre><code id="script-code"></code></pre>
+                    </div>
+                </div>
+
+                <div id="save-feedback" class="feedback"></div>
+                <div style="text-align: right;">
+                    <button id="save-btn" class="btn btn-primary hidden">Lưu cấu hình</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- MOCK DATA (Dữ liệu giả lập) ---
+    const MOCK_PIXELS = [
+        { id: '123456789012345', name: 'MyCoolShop - Main Pixel' },
+        { id: '987654321098765', name: 'Dev Test Pixel' },
+        { id: '555555555555555', name: 'Marketing Campaign Pixel' }
+    ];
+    
+    // Giả lập widget của bạn quét và phát hiện Pixel trên website của người dùng
+    const DETECTED_PIXEL_ON_WEBSITE = '123456789012345'; // <-- Thay đổi ID này để test các kịch bản khác nhau
+    // const DETECTED_PIXEL_ON_WEBSITE = '99999'; // <-- Test kịch bản không khớp
+    // const DETECTED_PIXEL_ON_WEBSITE = null; // <-- Test kịch bản không tìm thấy
+    
+    // --- DOM Elements ---
+    const connectBtn = document.getElementById('connect-btn');
+    const connectionBox = document.getElementById('connection-box');
+    const connectionStatus = document.getElementById('connection-status');
+    const connectionDetails = document.getElementById('connection-details');
+    const configSection = document.getElementById('config-section');
+    const pixelSelector = document.getElementById('pixel-selector');
+    const statusIndicator = document.getElementById('status-indicator');
+    const scenario2 = document.getElementById('scenario2');
+    const managePixelToggle = document.getElementById('manage-pixel-toggle');
+    const toggleDescription = document.getElementById('toggle-description');
+    const scriptContainer = document.getElementById('script-container');
+    const scriptCode = document.getElementById('script-code');
+    const saveBtn = document.getElementById('save-btn');
+    const saveFeedback = document.getElementById('save-feedback');
+
+    // --- FUNCTIONS ---
+    function connectToMeta() {
+        connectBtn.textContent = 'Đang kết nối...';
+        setTimeout(() => {
+            // Giả lập kết nối thành công
+            connectionBox.classList.remove('disconnected');
+            connectionBox.classList.add('connected');
+            connectionStatus.innerHTML = '<i class="fas fa-check-circle"></i> Đã kết nối với Meta';
+            connectionStatus.classList.add('connected');
+            connectionDetails.textContent = 'Business Manager: MyCoolShop Inc.';
+            connectBtn.textContent = 'Ngắt kết nối';
+            connectBtn.classList.remove('btn-primary');
+            connectBtn.classList.add('btn-danger');
+
+            configSection.classList.remove('hidden');
+            populatePixelSelector();
+        }, 1500);
+    }
+
+    function disconnectFromMeta() {
+         // Reset về trạng thái ban đầu
+        connectionBox.classList.add('disconnected');
+        connectionBox.classList.remove('connected');
+        connectionStatus.innerHTML = 'Chưa kết nối với Meta';
+        connectionStatus.classList.remove('connected');
+        connectionDetails.textContent = 'Kết nối để bắt đầu cấu hình gửi sự kiện.';
+        connectBtn.textContent = 'Kết nối với Meta';
+        connectBtn.classList.add('btn-primary');
+        connectBtn.classList.remove('btn-danger');
+
+        configSection.classList.add('hidden');
+        pixelSelector.value = '';
+        statusIndicator.classList.add('hidden');
+        scenario2.classList.add('hidden');
+        saveBtn.classList.add('hidden');
+        managePixelToggle.checked = false;
+        scriptContainer.classList.add('hidden');
+    }
+
+    function populatePixelSelector() {
+        MOCK_PIXELS.forEach(pixel => {
+            const option = document.createElement('option');
+            option.value = pixel.id;
+            option.textContent = `${pixel.name} (ID: ${pixel.id})`;
+            pixelSelector.appendChild(option);
+        });
+    }
+
+    function verifyPixelSelection() {
+        const selectedPixelId = pixelSelector.value;
+        statusIndicator.classList.remove('hidden', 'verified', 'warning', 'error');
+
+        if (!selectedPixelId) {
+            statusIndicator.classList.add('hidden');
+            scenario2.classList.add('hidden');
+            saveBtn.classList.add('hidden');
+            return;
+        }
+        
+        saveBtn.classList.remove('hidden');
+        scenario2.classList.remove('hidden');
+        updateToggleDescription(selectedPixelId);
+
+        if (!DETECTED_PIXEL_ON_WEBSITE) {
+             statusIndicator.classList.add('error');
+             statusIndicator.innerHTML = `<i class="fas fa-times-circle"></i> <strong>Không tìm thấy:</strong> Chúng tôi không phát hiện Meta Pixel nào trên website của bạn. CAPI sẽ hoạt động với hiệu quả thấp.`;
+        } else if (selectedPixelId === DETECTED_PIXEL_ON_WEBSITE) {
+            statusIndicator.classList.add('verified');
+            statusIndicator.innerHTML = `<i class="fas fa-check-circle"></i> <strong>Đã xác thực:</strong> Pixel này khớp với Pixel chúng tôi tìm thấy trên website của bạn.`;
+        } else {
+            statusIndicator.classList.add('warning');
+            statusIndicator.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <strong>Cảnh báo không khớp:</strong> Pixel bạn chọn không khớp với Pixel (ID: ...${DETECTED_PIXEL_ON_WEBSITE.slice(-4)}) mà chúng tôi phát hiện trên website. Vui lòng kiểm tra lại.`;
+        }
+    }
+    
+    function updateToggleDescription(pixelId) {
+        if(managePixelToggle.checked) {
+            toggleDescription.classList.add('hidden');
+            scriptContainer.classList.remove('hidden');
+            scriptCode.textContent = `<!-- Script SOP (bao gồm Widget và Meta Pixel) -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${pixelId}'); // <-- SOP tự động chèn Pixel ID của bạn
+fbq('track', 'PageView');
+<\/script>
+<script>
+  window.sopWidgetSettings = { apiKey: "YOUR_SOP_API_KEY" };
+  // ... mã nhúng widget SOP của bạn ...
+<\/script>
+<!-- Kết thúc Script SOP -->`;
+        } else {
+            toggleDescription.classList.remove('hidden');
+            toggleDescription.textContent = 'Bạn sẽ cần tự cài đặt mã Meta Pixel trên website của mình. SOP sẽ chỉ gửi các sự kiện từ phía máy chủ (server-side) để bổ sung cho Pixel này.';
+            scriptContainer.classList.add('hidden');
+        }
+    }
+    
+    function saveConfiguration() {
+        saveBtn.disabled = true;
+        saveFeedback.textContent = 'Đang lưu...';
+        
+        setTimeout(() => {
+            saveBtn.disabled = false;
+            saveFeedback.textContent = 'Đã lưu cấu hình thành công!';
+            
+            setTimeout(() => { saveFeedback.textContent = ''; }, 3000);
+        }, 1500);
+    }
+
+    // --- EVENT LISTENERS ---
+    connectBtn.addEventListener('click', () => {
+        if (connectBtn.textContent.includes('Kết nối')) {
+            connectToMeta();
+        } else {
+            disconnectFromMeta();
+        }
+    });
+
+    pixelSelector.addEventListener('change', verifyPixelSelection);
+    
+    managePixelToggle.addEventListener('change', () => {
+        const selectedPixelId = pixelSelector.value;
+        if (selectedPixelId) {
+            updateToggleDescription(selectedPixelId);
+        }
+    });
+    
+    saveBtn.addEventListener('click', saveConfiguration);
+
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototype - Quản lý Chiến dịch Thông báo</title>
+    <style>
+        /* --- General Styles & Variables --- */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --bg-color: #f4f6f9;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --border-radius: 0.5rem;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Layout --- */
+        .sidebar {
+            width: 240px;
+            background-color: var(--dark-color);
+            color: white;
+            padding: 20px;
+            flex-shrink: 0;
+        }
+        .sidebar h1 {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .sidebar ul { list-style: none; padding: 0; }
+        .sidebar li a {
+            display: block;
+            padding: 12px 15px;
+            color: #ccc;
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            margin-bottom: 5px;
+            transition: background-color 0.2s;
+        }
+        .sidebar li a.active, .sidebar li a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* --- Common Components --- */
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .card-header h2 { margin: 0; font-size: 1.5rem; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            font-weight: 500;
+        }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-secondary { background-color: var(--secondary-color); color: white; }
+        .btn-secondary:hover { background-color: #545b62; }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-icon { background: none; border: none; cursor: pointer; padding: 5px; }
+        .btn-icon svg { width: 20px; height: 20px; vertical-align: middle; }
+
+        /* --- Campaign List Screen (UC-02) --- */
+        .campaign-table { width: 100%; border-collapse: collapse; }
+        .campaign-table th, .campaign-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .campaign-table th { background-color: var(--light-color); font-weight: 600; }
+        .campaign-table tr:hover { background-color: #f1f1f1; }
+        .status-tag {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+        .status-draft { background-color: var(--secondary-color); }
+        .status-scheduled { background-color: var(--info-color); }
+        .status-sending { background-color: var(--warning-color); color: var(--dark-color); }
+        .status-completed { background-color: var(--success-color); }
+        .status-paused { background-color: var(--danger-color); }
+        
+        .action-buttons button { margin-right: 5px; }
+
+        /* --- Campaign Creator Screen (UC-01) --- */
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .step {
+            text-align: center;
+            flex-grow: 1;
+        }
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #ccc;
+            color: white;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border: 2px solid #ccc;
+            transition: all 0.3s;
+        }
+        .step-title {
+            margin-top: 10px;
+            color: #ccc;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .step.active .step-number { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .step.active .step-title { color: var(--primary-color); }
+        .step.completed .step-number { background-color: var(--success-color); border-color: var(--success-color); }
+        .step.completed .step-title { color: var(--success-color); }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        #drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        #drop-zone.dragover {
+            background-color: #e9ecef;
+            border-color: var(--primary-color);
+        }
+        #file-info {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            display: flex; align-items: center;
+        }
+
+        .mapping-table { width: 100%; }
+        .mapping-table td { padding: 8px 0; }
+
+        /* Step 2: Content & Schedule */
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+        .variable-palette {
+            background-color: var(--light-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+        }
+        .variable-palette h4 { margin-top: 0; margin-bottom: 10px; }
+        .variable-tag {
+            display: inline-block;
+            background-color: #e0e0e0;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 3px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            transition: background-color 0.2s;
+        }
+        .variable-tag:hover { background-color: var(--primary-color); color: white; }
+        #content-editor {
+            min-height: 200px;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            border-radius: var(--border-radius);
+        }
+        .content-variable {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        /* Live Preview */
+        .live-preview {
+            border: 8px solid #333;
+            border-radius: 20px;
+            padding: 15px 5px;
+            background-color: #f9f9f9;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        #preview-banner {
+            width: 100%;
+            height: 120px;
+            background-color: #ccc;
+            background-size: cover;
+            background-position: center;
+        }
+        #preview-title {
+            font-weight: bold;
+            padding: 10px;
+            font-size: 1.1rem;
+        }
+        #preview-content {
+            padding: 0 10px 10px;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+        }
+
+        /* Step 3: Review */
+        .summary-section { margin-bottom: 20px; }
+        .summary-section h4 { border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .summary-item { display: flex; margin-bottom: 10px; }
+        .summary-item strong { width: 150px; flex-shrink: 0; }
+        .summary-item span { color: #555; }
+
+        /* --- Navigation Buttons --- */
+        .wizard-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h1>Admin Pro</h1>
+        <ul>
+            <li><a href="#" class="active">Quản lý Thông báo</a></li>
+            <li><a href="#">Quản lý Nhân viên</a></li>
+            <li><a href="#">Báo cáo</a></li>
+            <li><a href="#">Cài đặt</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <!-- ====================================================== -->
+        <!-- == SCREEN 1: CAMPAIGN LIST (UC-02)                  == -->
+        <!-- ====================================================== -->
+        <div id="campaign-list-screen" class="screen active">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Danh sách Chiến dịch</h2>
+                    <button id="btn-create-new" class="btn btn-primary">Tạo chiến dịch mới</button>
+                </div>
+                <table class="campaign-table">
+                    <thead>
+                        <tr>
+                            <th>Tên chiến dịch</th>
+                            <th>Trạng thái</th>
+                            <th>Người nhận</th>
+                            <th>Ngày tạo</th>
+                            <th>Người tạo</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="campaign-list-body">
+                        <!-- JS will populate this -->
+                        <tr>
+                            <td>Nhắc phí Ads T7/2025</td>
+                            <td><span class="status-tag status-completed">Hoàn thành</span></td>
+                            <td>150</td>
+                            <td>01/07/2025</td>
+                            <td>admin@email.com</td>
+                            <td class="action-buttons">
+                                <button class="btn-icon" title="Xem chi tiết & Báo cáo (UC-03, UC-09)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5Z"/></svg></button>
+                                <button class="btn-icon" title="Nhân bản (UC-08)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+                            </td>
+                        </tr>
+                         <tr>
+                            <td>Thông báo phí Ads T8/2025</td>
+                            <td><span class="status-tag status-scheduled">Đã lên lịch</span></td>
+                            <td>152</td>
+                            <td>15/08/2025</td>
+                            <td>admin@email.com</td>
+                            <td class="action-buttons">
+                                <button class="btn-icon" title="Sửa (UC-04)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+                                <button class="btn-icon" title="Tạm dừng (UC-07)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg></button>
+                                <button class="btn-icon" title="Nhân bản (UC-08)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>[Test] Thông báo nội bộ</td>
+                            <td><span class="status-tag status-draft">Nháp</span></td>
+                            <td>(Chưa có)</td>
+                            <td>10/08/2025</td>
+                            <td>admin@email.com</td>
+                            <td class="action-buttons">
+                                <button class="btn-icon" title="Sửa (UC-04)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+                                <button class="btn-icon" title="Xóa (UC-05)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+                                <button class="btn-icon" title="Kích hoạt (UC-06)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ====================================================== -->
+        <!-- == SCREEN 2: CAMPAIGN CREATOR (UC-01)               == -->
+        <!-- ====================================================== -->
+        <div id="campaign-creator-screen" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <h2 id="creator-title">Tạo chiến dịch mới</h2>
+                    <button id="btn-cancel-creation" class="btn btn-secondary">Hủy bỏ</button>
+                </div>
+                
+                <!-- Stepper -->
+                <div class="stepper">
+                    <div class="step active" id="step-indicator-1">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Cấu hình & Dữ liệu</div>
+                    </div>
+                    <div class="step" id="step-indicator-2">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Soạn thảo & Lên lịch</div>
+                    </div>
+                    <div class="step" id="step-indicator-3">
+                        <div class="step-number">3</div>
+                        <div class="step-title">Xem lại & Kích hoạt</div>
+                    </div>
+                </div>
+
+                <!-- Wizard Content -->
+                <div id="wizard-content">
+                    <!-- Step 1: Config & Data -->
+                    <div id="step-1" class="step-content active">
+                        <div class="form-group">
+                            <label for="campaign-name">Tên chiến dịch</label>
+                            <input type="text" id="campaign-name" class="form-control" placeholder="VD: Nhắc phí Ads tháng 8/2025">
+                        </div>
+                        <div class="form-group">
+                            <label>Tải lên danh sách người nhận (Excel)</label>
+                            <div id="drop-zone">
+                                Kéo và thả file Excel vào đây, hoặc <strong>nhấn để chọn file</strong>.
+                                <input type="file" id="file-input" hidden accept=".xlsx, .xls, .csv">
+                            </div>
+                            <div id="file-config-section" style="display:none;">
+                                <div id="file-info" class="form-group">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24" style="color: var(--success-color); margin-right: 10px;"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                    <span id="file-name-display"></span>
+                                    <button class="btn-icon" style="margin-left: auto;" title="Xóa file và tải lại" id="btn-remove-file">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                    </button>
+                                </div>
+                                <div class="form-group">
+                                    <label for="recipient-id-column">Chọn cột định danh người nhận</label>
+                                    <select id="recipient-id-column" class="form-control">
+                                        <option value="email">Email</option>
+                                        <option value="ma_nv">Mã nhân viên</option>
+                                        <option value="sdt">Số điện thoại</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Ánh xạ và tùy chỉnh biến</label>
+                                    <p style="font-size: 0.9rem; color: #555; margin-top: -5px;">Hệ thống đã tự động tạo biến từ các cột trong file. Bạn có thể sửa lại tên biến cho dễ nhớ.</p>
+                                    <table class="mapping-table">
+                                        <tr>
+                                            <td><strong>Cột trong Excel</strong></td>
+                                            <td><strong>Tên biến (Có thể sửa)</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Email</td>
+                                            <td><input type="text" class="form-control" value="Email"></td>
+                                        </tr>
+                                        <tr>
+                                            <td>SoTienNo</td>
+                                            <td><input type="text" class="form-control" value="SoTienNo"></td>
+                                        </tr>
+                                        <tr>
+                                            <td>ThangNo</td>
+                                            <td><input type="text" class="form-control" value="ThangNo"></td>
+                                        </tr>
+                                        <tr>
+                                            <td>LinkThanhToan</td>
+                                            <td><input type="text" class="form-control" value="LinkThanhToan"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Content & Schedule -->
+                    <div id="step-2" class="step-content" style="display:none;">
+                        <div class="form-group">
+                            <label>Lên lịch gửi</label>
+                            <div>
+                                <input type="radio" id="send-now" name="schedule" value="now" checked>
+                                <label for="send-now">Gửi ngay sau khi kích hoạt</label>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <input type="radio" id="schedule-send" name="schedule" value="later">
+                                <label for="schedule-send">Lên lịch gửi vào</label>
+                                <input type="datetime-local" id="schedule-time" class="form-control" style="width: auto; display: none; margin-left:10px;">
+                            </div>
+                        </div>
+
+                        <div class="editor-layout">
+                            <div class="editor-panel">
+                                 <div class="form-group">
+                                    <label for="banner-upload">Ảnh banner (Tùy chọn)</label>
+                                    <input type="file" id="banner-upload" class="form-control" accept="image/*">
+                                </div>
+                                <div class="form-group">
+                                    <label for="notification-title">Tiêu đề thông báo</label>
+                                    <input type="text" id="notification-title" class="form-control" placeholder="Nhập tiêu đề...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="content-editor">Nội dung thông báo</label>
+                                    <div id="content-editor" class="form-control" contenteditable="true" placeholder="Nhập nội dung tại đây..."></div>
+                                </div>
+                            </div>
+                            <div class="preview-panel">
+                                <div class="variable-palette">
+                                    <h4>Bảng biến</h4>
+                                    <p style="font-size: 0.9rem; color: #555;">Nhấn để chèn biến vào nội dung.</p>
+                                    <strong>Biến hệ thống:</strong><br>
+                                    <span class="variable-tag" data-variable="{{HoTen}}">HoTen</span>
+                                    <span class="variable-tag" data-variable="{{ChucVu}}">ChucVu</span>
+                                    <hr style="border-top: 1px solid #ccc; border-bottom: none; margin: 10px 0;">
+                                    <strong>Biến từ Excel:</strong><br>
+                                    <span class="variable-tag" data-variable="{{SoTienNo}}">SoTienNo</span>
+                                    <span class="variable-tag" data-variable="{{ThangNo}}">ThangNo</span>
+                                    <span class="variable-tag" data-variable="{{LinkThanhToan}}">LinkThanhToan</span>
+                                </div>
+                                <h4 style="margin-top:20px;">Xem trước trực tiếp</h4>
+                                <div class="live-preview">
+                                    <div id="preview-banner"></div>
+                                    <div id="preview-title">Tiêu đề thông báo</div>
+                                    <div id="preview-content">Nội dung sẽ được hiển thị ở đây.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Review -->
+                    <div id="step-3" class="step-content" style="display:none;">
+                         <h3>Xem lại và Kích hoạt</h3>
+                         <p>Vui lòng kiểm tra lại toàn bộ thông tin trước khi lưu hoặc kích hoạt chiến dịch.</p>
+                         
+                         <div class="editor-layout">
+                            <div>
+                                <div class="summary-section">
+                                    <h4>Thông tin chung</h4>
+                                    <div class="summary-item"><strong>Tên chiến dịch:</strong> <span id="summary-name"></span></div>
+                                    <div class="summary-item"><strong>Nguồn dữ liệu:</strong> <span id="summary-file"></span></div>
+                                    <div class="summary-item"><strong>Cột định danh:</strong> <span id="summary-id-column"></span></div>
+                                    <div class="summary-item"><strong>Thời gian gửi:</strong> <span id="summary-schedule"></span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <h4>Xem trước thông báo cuối cùng</h4>
+                                <div class="live-preview">
+                                    <div id="summary-preview-banner"></div>
+                                    <div id="summary-preview-title"></div>
+                                    <div id="summary-preview-content"></div>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="wizard-nav">
+                    <button id="btn-prev" class="btn btn-secondary" style="display: none;">Quay lại</button>
+                    <div style="margin-left:auto;">
+                        <button id="btn-next" class="btn btn-primary">Tiếp tục</button>
+                        <button id="btn-save-draft" class="btn btn-secondary" style="display: none;">Lưu nháp</button>
+                        <button id="btn-activate" class="btn btn-success" style="display: none;">Lưu & Kích hoạt</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- DOM Elements ---
+            const screens = document.querySelectorAll('.screen');
+            const campaignListScreen = document.getElementById('campaign-list-screen');
+            const campaignCreatorScreen = document.getElementById('campaign-creator-screen');
+            const btnCreateNew = document.getElementById('btn-create-new');
+            const btnCancelCreation = document.getElementById('btn-cancel-creation');
+            
+            // Wizard elements
+            const creatorTitle = document.getElementById('creator-title');
+            const steps = document.querySelectorAll('.step-content');
+            const stepIndicators = document.querySelectorAll('.step');
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            const btnSaveDraft = document.getElementById('btn-save-draft');
+            const btnActivate = document.getElementById('btn-activate');
+            let currentStep = 0;
+
+            // --- Navigation Logic ---
+            function showScreen(screenId) {
+                screens.forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(screenId).classList.add('active');
+            }
+
+            btnCreateNew.addEventListener('click', () => {
+                resetWizard();
+                showScreen('campaign-creator-screen');
+            });
+            
+            btnCancelCreation.addEventListener('click', () => {
+                if(confirm('Bạn có chắc muốn hủy bỏ? Mọi thay đổi sẽ không được lưu.')) {
+                    showScreen('campaign-list-screen');
+                }
+            });
+
+            // --- Wizard Logic ---
+            function updateWizardButtons() {
+                btnPrev.style.display = currentStep > 0 ? 'inline-block' : 'none';
+                btnNext.style.display = currentStep < steps.length - 1 ? 'inline-block' : 'none';
+                btnSaveDraft.style.display = currentStep === steps.length - 1 ? 'inline-block' : 'none';
+                btnActivate.style.display = currentStep === steps.length - 1 ? 'inline-block' : 'none';
+            }
+
+            function goToStep(stepIndex) {
+                if (stepIndex < 0 || stepIndex >= steps.length) return;
+
+                // Simple validation before proceeding
+                if (stepIndex > currentStep) {
+                    if (currentStep === 0 && !validateStep1()) return;
+                    if (currentStep === 1 && !validateStep2()) return;
+                }
+
+                steps[currentStep].style.display = 'none';
+                stepIndicators[currentStep].classList.remove('active');
+                if (stepIndex > currentStep) {
+                     stepIndicators[currentStep].classList.add('completed');
+                }
+                
+                currentStep = stepIndex;
+                steps[currentStep].style.display = 'block';
+                stepIndicators[currentStep].classList.add('active');
+                
+                if (currentStep === 2) { // When on Review step
+                    populateSummary();
+                }
+
+                updateWizardButtons();
+            }
+            
+            function resetWizard() {
+                // Reset to step 0
+                goToStep(0);
+                // Clear all indicators
+                stepIndicators.forEach(ind => ind.classList.remove('active', 'completed'));
+                stepIndicators[0].classList.add('active');
+                // Reset form fields (basic example)
+                document.getElementById('campaign-name').value = '';
+                // more resets...
+            }
+            
+            function validateStep1() {
+                if (!document.getElementById('campaign-name').value) {
+                    alert('Vui lòng nhập Tên chiến dịch.');
+                    return false;
+                }
+                if (document.getElementById('file-config-section').style.display === 'none') {
+                    alert('Vui lòng tải lên file dữ liệu.');
+                    return false;
+                }
+                return true;
+            }
+
+            function validateStep2() {
+                if (!document.getElementById('notification-title').value) {
+                    alert('Vui lòng nhập Tiêu đề thông báo.');
+                    return false;
+                }
+                if (document.getElementById('content-editor').innerText.trim() === '') {
+                    alert('Vui lòng nhập Nội dung thông báo.');
+                    return false;
+                }
+                return true;
+            }
+
+
+            btnNext.addEventListener('click', () => goToStep(currentStep + 1));
+            btnPrev.addEventListener('click', () => goToStep(currentStep - 1));
+            
+            btnSaveDraft.addEventListener('click', () => {
+                alert('Chiến dịch đã được lưu nháp!');
+                showScreen('campaign-list-screen');
+            });
+            btnActivate.addEventListener('click', () => {
+                alert('Chiến dịch đã được kích hoạt!');
+                showScreen('campaign-list-screen');
+            });
+
+
+            // --- Step 1: File Upload Logic ---
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const fileConfigSection = document.getElementById('file-config-section');
+            const fileNameDisplay = document.getElementById('file-name-display');
+            const btnRemoveFile = document.getElementById('btn-remove-file');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    handleFile(fileInput.files[0]);
+                }
+            });
+
+            function handleFile(file) {
+                fileNameDisplay.textContent = file.name;
+                dropZone.style.display = 'none';
+                fileConfigSection.style.display = 'block';
+            }
+
+            btnRemoveFile.addEventListener('click', () => {
+                fileInput.value = ''; // Clear the file input
+                dropZone.style.display = 'block';
+                fileConfigSection.style.display = 'none';
+            });
+            
+            // --- Step 2: Content Editor & Live Preview ---
+            const scheduleTimeInput = document.getElementById('schedule-time');
+            document.querySelectorAll('input[name="schedule"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    scheduleTimeInput.style.display = e.target.value === 'later' ? 'inline-block' : 'none';
+                });
+            });
+
+            const notifTitleInput = document.getElementById('notification-title');
+            const contentEditor = document.getElementById('content-editor');
+            const previewTitle = document.getElementById('preview-title');
+            const previewContent = document.getElementById('preview-content');
+            const bannerUpload = document.getElementById('banner-upload');
+            const previewBanner = document.getElementById('preview-banner');
+
+            function updatePreview() {
+                previewTitle.textContent = notifTitleInput.value || 'Tiêu đề thông báo';
+                // Replace variables with sample data for a better preview
+                let previewHTML = contentEditor.innerHTML
+                    .replace(/{{HoTen}}/g, '<span class="content-variable">Nguyễn Văn A</span>')
+                    .replace(/{{SoTienNo}}/g, '<span class="content-variable">500,000đ</span>')
+                    .replace(/{{ThangNo}}/g, '<span class="content-variable">T8/2025</span>')
+                    .replace(/{{LinkThanhToan}}/g, '<span class="content-variable">[Link]</span>')
+                    .replace(/{{ChucVu}}/g, '<span class="content-variable">Developer</span>');
+                previewContent.innerHTML = previewHTML || 'Nội dung sẽ được hiển thị ở đây.';
+            }
+
+            notifTitleInput.addEventListener('keyup', updatePreview);
+            contentEditor.addEventListener('keyup', updatePreview);
+            
+            bannerUpload.addEventListener('change', function() {
+                if(this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewBanner.style.backgroundImage = `url('${e.target.result}')`;
+                        previewBanner.style.backgroundColor = 'transparent';
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+
+            // Variable insertion
+            document.querySelectorAll('.variable-tag').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    const variable = tag.dataset.variable;
+                    contentEditor.focus();
+                    document.execCommand('insertText', false, variable);
+                    updatePreview();
+                });
+            });
+
+            // --- Step 3: Populate Summary ---
+            function populateSummary() {
+                document.getElementById('summary-name').textContent = document.getElementById('campaign-name').value;
+                document.getElementById('summary-file').textContent = document.getElementById('file-name-display').textContent;
+                const idSelect = document.getElementById('recipient-id-column');
+                document.getElementById('summary-id-column').textContent = idSelect.options[idSelect.selectedIndex].text;
+                
+                const scheduleValue = document.querySelector('input[name="schedule"]:checked').value;
+                if (scheduleValue === 'now') {
+                    document.getElementById('summary-schedule').textContent = 'Gửi ngay sau khi kích hoạt';
+                } else {
+                    const time = document.getElementById('schedule-time').value;
+                    document.getElementById('summary-schedule').textContent = new Date(time).toLocaleString('vi-VN');
+                }
+                
+                // Populate preview
+                document.getElementById('summary-preview-banner').style.backgroundImage = previewBanner.style.backgroundImage;
+                document.getElementById('summary-preview-banner').style.backgroundColor = previewBanner.style.backgroundColor;
+                document.getElementById('summary-preview-title').textContent = previewTitle.textContent;
+                document.getElementById('summary-preview-content').innerHTML = previewContent.innerHTML;
+            }
+
+        });
+    </script>
+</body>
+</html>

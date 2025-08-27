@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo Final: So sánh 2 phương án (Interactive)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #4A90E2; --light-blue-bg: #F3F7FD; --page-bg: #F9FAFB;
+            --border-color: #E5E7EB; --text-color: #374151; --label-color: #6B7280; --white: #FFFFFF;
+            --success-bg: #D1FAE5; --success-border: #6EE7B7; --success-text: #065F46;
+            --error-bg: #FEE2E2; --error-border: #FCA5A5; --error-text: #991B1B;
+        }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background-color: var(--page-bg); color: var(--text-color); margin: 0; }
+        .header { background: var(--white); padding: 15px 30px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 20px; margin: 0; }
+        .main-container { display: flex; padding: 30px; gap: 30px; }
+        .config-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .preview-panel { flex: 1.2; }
+        .config-card, .preview-card { background: var(--white); border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .config-card h3, .preview-card h3 { font-size: 16px; margin: 0 0 20px 0; display: block; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+        .form-group label { display: block; font-size: 14px; font-weight: 500; color: var(--label-color); margin-bottom: 8px; }
+        .form-select, .form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        textarea.form-control { min-height: 120px; resize: vertical; }
+        .btn { padding: 10px 15px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--light-blue-bg); cursor: pointer; font-weight: 500; text-align: center; }
+        .btn-primary { background: var(--primary-blue); color: var(--white); border-color: var(--primary-blue); }
+        .btn-primary:disabled { background: #A9B9CC; border-color: #A9B9CC; cursor: not-allowed; }
+        .hidden { display: none; }
+        #wizardView { text-align: center; }
+        .mapping-table { width: 100%; text-align: left; margin-top: 20px; border-collapse: collapse; }
+        .mapping-table th, .mapping-table td { padding: 12px; border: 1px solid var(--border-color); }
+        .mapping-table th { background-color: var(--light-blue-bg); }
+        .variable-tag { background: #E0E7FF; color: #4338CA; padding: 4px 8px; border-radius: 4px; font-family: monospace; cursor: pointer; display: inline-block; user-select: none; transition: background-color 0.2s; }
+        .variable-tag:hover { background-color: #C7D2FE; }
+        .upload-result { margin-top: 15px; padding: 15px; border-radius: 6px; font-size: 14px; }
+        .upload-result.success { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
+        .upload-result.error { background: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text); }
+        #previewContent { white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+        #previewContent .preview-variable { font-weight: bold; color: #4338CA; background-color: #E0E7FF; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="header"><h1>Thêm thông báo mới</h1></div>
+
+    <!-- ===== COMPOSER VIEW ===== -->
+    <div id="composerView" class="main-container">
+        <div class="config-panel">
+            <div class="config-card">
+                <h3>Tùy chỉnh</h3>
+                <div class="form-group">
+                    <label for="notificationType">Loại thông báo</label>
+                    <select id="notificationType" class="form-select" onchange="handleTypeChange(this.value)">
+                        <option value="general">Bảo trì hệ thống</option>
+                        <option value="fixed">Thu nợ (Kiểu 1 - Template cố định)</option>
+                        <option value="freestyle">Thu nợ (Kiểu 2 - Tự do + Ánh xạ)</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="title">Tiêu đề</label><input type="text" id="title" class="form-control" oninput="updatePreview()"></div>
+                <div class="form-group"><label for="content">Nội dung</label><textarea id="content" class="form-control" oninput="updatePreview()"></textarea></div>
+            </div>
+            <div id="variableCard" class="config-card hidden">
+                <h3>Biến dữ liệu có thể dùng</h3>
+                <p style="font-size: 14px; color: var(--label-color); margin-top: -10px;">Click để chèn biến vào nội dung.</p>
+                <div id="variableList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+            </div>
+             <div class="config-card">
+                <h3>Đối tượng nhận thông báo</h3>
+                <div id="recipientGeneral"><p>Chọn nhóm nhân viên, cơ cấu tổ chức...</p></div>
+                <div id="recipientTemplate" class="hidden">
+                    <p style="font-size: 14px; color: var(--label-color);">Tải lên danh sách người nhận. File phải tuân thủ đúng mẫu của hệ thống.</p>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn" onclick="downloadSample()">Tải file mẫu</button>
+                        <label for="fileUploadTemplate" class="btn btn-primary">Upload file</label>
+                        <input type="file" id="fileUploadTemplate" onchange="handleFixedFileUpload(event)" accept=".xlsx" style="display: none;">
+                    </div>
+                    <div id="uploadResult" class="hidden"></div>
+                </div>
+                <div id="recipientFreestyle" class="hidden"></div>
+            </div>
+        </div>
+        <div class="preview-panel">
+             <div class="preview-card">
+                 <h3>Xem trước thông báo</h3>
+                 <h2 id="previewTitle" style="margin-top: 20px; font-size: 22px;"></h2>
+                 <p id="previewContent" style="margin-top: 15px;"></p>
+             </div>
+        </div>
+    </div>
+    
+    <!-- ===== WIZARD VIEW (for Freestyle) ===== -->
+    <div id="wizardView" class="main-container hidden">
+        <div style="width:100%; text-align: center;">
+            <div id="step1" class="config-card" style="margin: 0 auto; max-width: 700px;">
+                <h3>Bước 1: Tải lên danh sách người nhận (Tự do)</h3>
+                <p>Chọn file Excel của bạn. Hệ thống sẽ tự động đọc các cột.</p>
+                <label for="fileUploadFreestyle" class="btn btn-primary" style="display: inline-block; width: auto; padding: 12px 30px;">Chọn File Excel</label>
+                <input type="file" id="fileUploadFreestyle" onchange="handleFreestyleUpload(event)" accept=".xlsx" style="display: none;">
+                <button class="btn" style="display: inline-block; width: auto; padding: 12px 30px;" onclick="handleTypeChange('general')">Hủy</button>
+            </div>
+            <div id="step2" class="config-card hidden" style="margin: 0 auto; max-width: 700px;">
+                <h3>Bước 2: Ánh xạ dữ liệu</h3>
+                <p>Hãy cho hệ thống biết mỗi cột trong file của bạn tương ứng với loại dữ liệu nào.</p>
+                <table class="mapping-table">
+                    <thead><tr><th>Tên Cột trong File</th><th>Loại Dữ liệu Hệ thống</th></tr></thead>
+                    <tbody id="mappingBody"></tbody>
+                </table>
+                <div style="margin-top: 30px;">
+                    <button id="confirmMapBtn" class="btn btn-primary" onclick="confirmMapping()" disabled>Xác nhận và Soạn thông báo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const FIXED_HEADERS = ['Month_T-1', 'Branch', 'Inside_Sales_Account', 'Ads_Channel', 'Amount_Due', 'Amount_Due_Total', 'Amount_Paid_ToDate', 'Remaining_Due', 'email'];
+    let freestyleHeaders = [];
+    let freestyleData = [];
+
+    // --- CORE UI FUNCTIONS ---
+    function handleTypeChange(type) {
+        document.getElementById('composerView').classList.remove('hidden');
+        document.getElementById('wizardView').classList.add('hidden');
+        
+        document.getElementById('recipientGeneral').classList.toggle('hidden', type !== 'general');
+        document.getElementById('recipientTemplate').classList.toggle('hidden', type !== 'fixed');
+        document.getElementById('recipientFreestyle').classList.add('hidden');
+        document.getElementById('variableCard').classList.toggle('hidden', type === 'general');
+        
+        if (type === 'general') {
+            document.getElementById('notificationType').value = 'general';
+        } else if (type === 'fixed') {
+            populateVariables(FIXED_HEADERS.filter(h => h !== 'email').map(h => `<${h}>`));
+        } else if (type === 'freestyle') {
+            document.getElementById('composerView').classList.add('hidden');
+            document.getElementById('wizardView').classList.remove('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('fileUploadFreestyle').value = '';
+        }
+        updatePreview();
+    }
+
+    function populateVariables(variables) {
+        const variableList = document.getElementById('variableList');
+        variableList.innerHTML = '';
+        variables.forEach(v => {
+            const tag = document.createElement('span');
+            tag.className = 'variable-tag';
+            tag.textContent = v;
+            tag.onclick = () => insertTextAtCursor(document.getElementById('content'), v);
+            variableList.appendChild(tag);
+        });
+    }
+
+    function updatePreview() {
+        const title = document.getElementById('title').value;
+        const content = document.getElementById('content').value;
+        document.getElementById('previewTitle').textContent = title || "[Tiêu đề thông báo]";
+        const formattedContent = content.replace(/<([^>]+)>/g, '<span class="preview-variable">&lt;$1&gt;</span>');
+        document.getElementById('previewContent').innerHTML = formattedContent || "Nội dung sẽ được hiển thị ở đây...";
+    }
+
+    function insertTextAtCursor(element, text) {
+        const start = element.selectionStart;
+        const end = element.selectionEnd;
+        const value = element.value;
+        element.value = value.substring(0, start) + text + value.substring(end);
+        element.selectionStart = element.selectionEnd = start + text.length;
+        element.focus();
+        updatePreview();
+    }
+
+    // --- LOGIC FOR FIXED TEMPLATE (KIỂU 1) ---
+    function downloadSample() {
+        const ws = XLSX.utils.aoa_to_sheet([FIXED_HEADERS]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+        XLSX.writeFile(wb, "mau_thu_no_co_dinh.xlsx");
+    }
+
+    function handleFixedFileUpload(event) {
+        const file = event.target.files[0];
+        const resultDiv = document.getElementById('uploadResult');
+        if (!file) {
+            resultDiv.className = 'upload-result hidden';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = e => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            
+            const headers = (jsonData[0] || []).map(h => String(h).toLowerCase());
+            const requiredLower = FIXED_HEADERS.map(h => String(h).toLowerCase());
+            const missing = requiredLower.filter(h => !headers.includes(h));
+
+            if (missing.length > 0) {
+                showResult('error', `<strong>File không đúng định dạng!</strong><br>Thiếu các cột: <strong>${missing.join(', ')}</strong>.`);
+            } else {
+                const recipientCount = jsonData.length - 1;
+                showResult('success', `<strong>Tải file thành công!</strong><br>Đã đọc được <strong>${recipientCount}</strong> người nhận.`);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+        event.target.value = '';
+    }
+    
+    function showResult(type, message) {
+        const resultDiv = document.getElementById('uploadResult');
+        resultDiv.className = `upload-result ${type}`;
+        resultDiv.innerHTML = message;
+        resultDiv.classList.remove('hidden');
+    }
+
+    // --- LOGIC FOR FREESTYLE + MAPPING (KIỂU 2) ---
+    function handleFreestyleUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            freestyleHeaders = jsonData[0] || [];
+            freestyleData = jsonData.slice(1);
+            renderMappingUI(freestyleHeaders);
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    function renderMappingUI(headers) {
+        const mappingBody = document.getElementById('mappingBody');
+        mappingBody.innerHTML = '';
+        headers.forEach((header, index) => {
+            const isEmailLike = String(header).toLowerCase().includes('email');
+            mappingBody.innerHTML += `
+                <tr>
+                    <td><strong>${header}</strong></td>
+                    <td>
+                        <select id="select-${index}" class="form-select" onchange="checkMappingValidity()">
+                            <option value="ignore">Bỏ qua</option>
+                            <option value="email" ${isEmailLike ? 'selected' : ''}>Email (Định danh)</option>
+                            <option value="text">Văn bản</option><option value="currency">Tiền tệ</option>
+                            <option value="date">Ngày tháng</option><option value="number">Số</option>
+                        </select>
+                    </td>
+                </tr>`;
+        });
+        checkMappingValidity();
+    }
+    
+    function checkMappingValidity() {
+        let hasEmail = false;
+        document.querySelectorAll('#mappingBody select').forEach(s => { if (s.value === 'email') hasEmail = true; });
+        document.getElementById('confirmMapBtn').disabled = !hasEmail;
+    }
+    
+    function toSnakeCase(str) {
+      if (!str) return '';
+      return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
+        .toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').replace(/__+/g, '_').replace(/^_+|_+$/g, '');
+    }
+
+    function confirmMapping() {
+        const mappedVariables = [];
+        freestyleHeaders.forEach((header, index) => {
+            const select = document.getElementById(`select-${index}`);
+            if (select.value !== 'ignore' && select.value !== 'email') {
+                const snakeCaseVar = toSnakeCase(header);
+                if(snakeCaseVar) mappedVariables.push(`<${snakeCaseVar}>`);
+            }
+        });
+        
+        handleTypeChange('general');
+        document.getElementById('notificationType').value = 'freestyle';
+        const recipientCount = freestyleData.length;
+        document.getElementById('recipientFreestyle').innerHTML = `<p style="color: ${recipientCount > 0 ? 'var(--success-text)' : 'var(--error-text)'};">✓ Đã tải lên file với <strong>${recipientCount}</strong> người nhận. <a href="#" onclick="handleTypeChange('freestyle'); return false;">Thay đổi file</a></p>`;
+        document.getElementById('recipientGeneral').classList.add('hidden');
+        document.getElementById('recipientTemplate').classList.add('hidden');
+        document.getElementById('recipientFreestyle').classList.remove('hidden');
+        document.getElementById('variableCard').classList.remove('hidden');
+        populateVariables(mappedVariables);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        handleTypeChange('general');
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototype: Thêm Thông Báo Mới (v2)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .main-container { max-width: 1400px; margin-top: 2rem; }
+        .card { border: none; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.05); }
+        .config-panel, .preview-panel { background: white; padding: 2rem; border-radius: 0.5rem; height: 100%; }
+        .section-title { font-weight: 600; color: #343a40; margin-bottom: 1rem; border-bottom: 1px solid #dee2e6; padding-bottom: 0.5rem; }
+        .help-text { font-size: 0.875rem; color: #6c757d; margin-bottom: 1rem; }
+        .variable-tag {
+            display: inline-block;
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 0.3rem 0.75rem;
+            border-radius: 1rem;
+            margin: 0.25rem;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid #ced4da;
+        }
+        .variable-tag:hover { background-color: #0d6efd; color: white; border-color: #0d6efd; }
+        .rich-text-editor { min-height: 150px; border: 1px solid #ced4da; border-radius: 0.375rem; padding: 0.5rem 1rem; }
+        .preview-box {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            position: sticky; top: 2rem;
+        }
+        .preview-header { font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; }
+        .preview-content { min-height: 100px; white-space: pre-wrap; word-wrap: break-word; }
+        .preview-content .highlight { background-color: #fff3cd; padding: 2px 4px; border-radius: 3px; }
+        .upload-area { border: 2px dashed #ced4da; border-radius: 0.5rem; padding: 2rem; text-align: center; }
+        .upload-area .bi { font-size: 2.5rem; color: #6c757d; }
+        .delete-btn { color: #6c757d; }
+        .delete-btn:hover { color: #dc3545; }
+    </style>
+</head>
+<body>
+
+<div class="container main-container">
+    <h3 class="mb-4">Tạo thông báo mới</h3>
+    <div class="row g-4">
+        <!-- Cột Cấu hình -->
+        <div class="col-lg-7">
+            <div class="config-panel">
+                <!-- Khu vực tùy chỉnh -->
+                <div class="mb-4">
+                    <h5 class="section-title">1. Tùy chỉnh thông báo</h5>
+                    <div class="mb-3">
+                        <label for="notificationType" class="form-label fw-bold">Loại thông báo <span class="text-danger">*</span></label>
+                        <select class="form-select" id="notificationType">
+                            <option>Bảo trì hệ thống</option>
+                            <option>Cập nhật mới</option>
+                            <option selected>Thông báo gắn biến</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notificationTitle" class="form-label fw-bold">Tiêu đề <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="notificationTitle" maxlength="150" placeholder="e.g., Thông báo công nợ tháng 8">
+                        <div class="form-text text-end"><span id="title-char-count">0</span>/150 ký tự</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nội dung <span class="text-danger">*</span></label>
+                        <div class="rich-text-editor" id="notificationContent" contenteditable="true" placeholder="Nhập nội dung của bạn tại đây..."></div>
+                    </div>
+                </div>
+
+                <!-- Khu vực Biến dữ liệu -->
+                <div class="mb-4">
+                    <h5 class="section-title">2. Biến dữ liệu có thể dùng</h5>
+                    <p class="help-text"><i class="bi bi-info-circle"></i> Click để chèn biến vào nội dung.</p>
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-6">
+                            <label for="templateSelect" class="form-label">Chọn mẫu thông báo:</label>
+                            <select class="form-select" id="templateSelect">
+                                <option value="thu_no" selected>Mẫu thu nợ</option>
+                                <option value="e2e">Kết quả E2E</option>
+                                <option value="luong_kd">Thông báo lương kinh doanh</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                            <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#dataMappingModal"><i class="bi bi-pencil-square"></i> Chỉnh sửa biến</button>
+                            <button class="btn btn-outline-success btn-sm"><i class="bi bi-save"></i> Lưu mẫu file</button>
+                        </div>
+                    </div>
+                    <div id="variable-list">
+                        <!-- Variables will be loaded here by JS -->
+                    </div>
+                </div>
+
+                <!-- Khu vực đối tượng nhận -->
+                <div>
+                    <h5 class="section-title">3. Đối tượng nhận thông báo</h5>
+                    <p class="help-text"><i class="bi bi-info-circle"></i> Tải lên danh sách người nhận. File phải tuân thủ đúng định dạng của hệ thống.</p>
+                    <div id="upload-area" class="upload-area">
+                        <div id="upload-initial">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <p class="mt-2 mb-2">Kéo thả file vào đây hoặc click để chọn file</p>
+                            <input type="file" id="file-upload-input" class="d-none" accept=".xlsx, .xls">
+                            <button class="btn btn-primary" onclick="document.getElementById('file-upload-input').click()">Upload File</button>
+                            <button class="btn btn-secondary">Tải file mẫu</button>
+                        </div>
+                        <div id="upload-success" class="d-none">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+                            <p class="mt-2 mb-2 fw-bold">Tải lên thành công!</p>
+                            <div class="alert alert-success">
+                                <i class="bi bi-file-earmark-excel"></i> <span id="file-name">danh_sach_thu_no.xlsx</span> (<span id="record-count">152</span> người nhận)
+                            </div>
+                            <button class="btn btn-danger btn-sm" id="remove-file-btn">Xóa file</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cột Preview -->
+        <div class="col-lg-5">
+            <div class="preview-panel">
+                <h5 class="section-title">Xem trước thông báo</h5>
+                <div class="preview-box">
+                    <div id="preview-title" class="preview-header">
+                        [Tiêu đề thông báo]
+                    </div>
+                    <hr>
+                    <div id="preview-content" class="preview-content">
+                        Nội dung của bạn sẽ được hiển thị ở đây khi bạn bắt đầu nhập.
+                        <br><br>
+                        <em>Tải lên file dữ liệu để xem trước với các biến được thay thế.</em>
+                    </div>
+                </div>
+                <div id="preview-nav" class="mt-3 text-center d-none">
+                     <button class="btn btn-light btn-sm">&lt; Trước</button>
+                     <span class="mx-2">Đang xem bản ghi <strong id="current-record">1</strong>/<span id="total-records">152</span></span>
+                     <button class="btn btn-light btn-sm">Sau &gt;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ánh xạ dữ liệu -->
+<div class="modal fade" id="dataMappingModal" tabindex="-1" aria-labelledby="dataMappingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dataMappingModalLabel">Ánh xạ dữ liệu & Cấu hình biến</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="help-text">Định nghĩa tên cột trong file Excel và loại dữ liệu tương ứng để hệ thống có thể đọc chính xác.</p>
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 5%;"></th>
+                    <th style="width: 40%;">Tên cột trong file (Biến)</th>
+                    <th style="width: 45%;">Loại dữ liệu hệ thống</th>
+                    <th style="width: 10%;" class="text-center">Xóa</th>
+                </tr>
+            </thead>
+            <tbody id="variable-mapping-body">
+                <tr>
+                    <td><i class="bi bi-grip-vertical" style="cursor: move;"></i></td>
+                    <td><input type="text" class="form-control" value="<Month_T-1>"></td>
+                    <td>
+                        <select class="form-select">
+                            <option>Văn bản</option>
+                            <option selected>Ngày tháng năm</option>
+                            <option>Tiền tệ</option>
+                        </select>
+                    </td>
+                    <td class="text-center"><button class="btn btn-sm delete-btn delete-variable-btn"><i class="bi bi-trash3-fill"></i></button></td>
+                </tr>
+                <tr>
+                    <td><i class="bi bi-grip-vertical" style="cursor: move;"></i></td>
+                    <td><input type="text" class="form-control" value="<Branch>"></td>
+                    <td><select class="form-select"><option selected>Văn bản</option><option>Số</option></select></td>
+                    <td class="text-center"><button class="btn btn-sm delete-btn delete-variable-btn"><i class="bi bi-trash3-fill"></i></button></td>
+                </tr>
+                <tr>
+                    <td><i class="bi bi-grip-vertical" style="cursor: move;"></i></td>
+                    <td><input type="text" class="form-control" value="<Amount_Due>"></td>
+                    <td><select class="form-select"><option>Văn bản</option><option selected>Tiền tệ</option><option>Số</option></select></td>
+                    <td class="text-center"><button class="btn btn-sm delete-btn delete-variable-btn"><i class="bi bi-trash3-fill"></i></button></td>
+                </tr>
+                 <tr>
+                    <td><i class="bi bi-grip-vertical" style="cursor: move;"></i></td>
+                    <td><input type="text" class="form-control" value="<Email>"></td>
+                    <td><select class="form-select"><option>Văn bản</option><option selected>Email (định danh)</option></select></td>
+                    <td class="text-center"><button class="btn btn-sm delete-btn delete-variable-btn"><i class="bi bi-trash3-fill"></i></button></td>
+                </tr>
+            </tbody>
+        </table>
+        <button class="btn btn-outline-primary btn-sm" id="add-variable-btn"><i class="bi bi-plus-circle"></i> Thêm biến</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // === Elements Selection ===
+    const notificationTitle = document.getElementById('notificationTitle');
+    const notificationContent = document.getElementById('notificationContent');
+    const previewTitle = document.getElementById('preview-title');
+    const previewContent = document.getElementById('preview-content');
+    const titleCharCount = document.getElementById('title-char-count');
+    const templateSelect = document.getElementById('templateSelect');
+    const variableList = document.getElementById('variable-list');
+    const fileUploadInput = document.getElementById('file-upload-input');
+    const uploadInitial = document.getElementById('upload-initial');
+    const uploadSuccess = document.getElementById('upload-success');
+    const removeFileBtn = document.getElementById('remove-file-btn');
+    const previewNav = document.getElementById('preview-nav');
+    const addVariableBtn = document.getElementById('add-variable-btn');
+    const mappingTableBody = document.getElementById('variable-mapping-body');
+
+    // === Data ===
+    const templates = {
+        'thu_no': ['Month_T-1', 'Branch', 'Inside_Sales_Account', 'Ads_Channel', 'Amount_Due', 'Amount_Due_Total', 'Amount_Paid_ToDate', 'Remaining_Due'],
+        'e2e': ['Test_Case_ID', 'Test_Suite', 'Status', 'Executor', 'Execution_Time', 'Error_Message'],
+        'luong_kd': ['Full_Name', 'Month', 'Base_Salary', 'KPI_Bonus', 'Commission', 'Total_Income', 'Deductions']
+    };
+    const sampleData = {
+        'Month_T-1': '07/2024',
+        'Branch': 'Hồ Chí Minh',
+        'Inside_Sales_Account': 'Nguyen Van A',
+        'Ads_Channel': 'Facebook',
+        'Amount_Due': '5,000,000đ',
+        'Amount_Due_Total': '15,000,000đ',
+        'Amount_Paid_ToDate': '10,000,000đ',
+        'Remaining_Due': '5,000,000đ'
+    };
+
+    // === Functions ===
+    function renderVariables(templateName) {
+        variableList.innerHTML = '';
+        templates[templateName].forEach(variable => {
+            const tag = document.createElement('span');
+            tag.className = 'variable-tag';
+            tag.textContent = `<${variable}>`;
+            tag.onclick = () => insertVariable(`<${variable}>`);
+            variableList.appendChild(tag);
+        });
+    }
+
+    function insertVariable(variableText) {
+        notificationContent.focus();
+        document.execCommand('insertText', false, ` ${variableText} `);
+        updatePreview();
+    }
+
+    function updatePreview(isFileUploaded = false) {
+        let titleText = notificationTitle.value || '[Tiêu đề thông báo]';
+        let contentHTML = notificationContent.innerHTML || 'Nội dung của bạn...';
+        
+        if (isFileUploaded) {
+            Object.keys(sampleData).forEach(key => {
+                const placeholder = `&lt;${key}&gt;`;
+                const regex = new RegExp(placeholder, 'g');
+                const replacement = `<span class="highlight">${sampleData[key]}</span>`;
+                titleText = titleText.replace(regex, replacement);
+                contentHTML = contentHTML.replace(regex, replacement);
+            });
+        }
+        
+        previewTitle.innerHTML = titleText;
+        previewContent.innerHTML = contentHTML;
+    }
+    
+    // === Event Listeners ===
+    notificationTitle.addEventListener('input', () => {
+        titleCharCount.textContent = notificationTitle.value.length;
+        updatePreview(fileUploadInput.files.length > 0);
+    });
+    notificationContent.addEventListener('input', () => {
+        updatePreview(fileUploadInput.files.length > 0);
+    });
+
+    templateSelect.addEventListener('change', (e) => {
+        renderVariables(e.target.value);
+    });
+
+    fileUploadInput.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            uploadInitial.classList.add('d-none');
+            uploadSuccess.classList.remove('d-none');
+            document.getElementById('file-name').textContent = this.files[0].name;
+            previewNav.classList.remove('d-none');
+            updatePreview(true);
+        }
+    });
+
+    removeFileBtn.addEventListener('click', () => {
+        fileUploadInput.value = '';
+        uploadInitial.classList.remove('d-none');
+        uploadSuccess.classList.add('d-none');
+        previewNav.classList.add('d-none');
+        updatePreview(false);
+    });
+
+    // *** NEW: Add variable row in modal ***
+    addVariableBtn.addEventListener('click', () => {
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td><i class="bi bi-grip-vertical" style="cursor: move;"></i></td>
+            <td><input type="text" class="form-control" placeholder="<Ten_Bien_Moi>"></td>
+            <td>
+                <select class="form-select">
+                    <option selected>Văn bản</option>
+                    <option>Email (định danh)</option>
+                    <option>Tiền tệ</option>
+                    <option>Ngày tháng năm</option>
+                    <option>Số điện thoại</option>
+                    <option>Số</option>
+                </select>
+            </td>
+            <td class="text-center"><button class="btn btn-sm delete-btn delete-variable-btn"><i class="bi bi-trash3-fill"></i></button></td>
+        `;
+        mappingTableBody.appendChild(newRow);
+    });
+
+    // *** NEW: Delete variable row in modal (using event delegation) ***
+    mappingTableBody.addEventListener('click', function(event) {
+        const deleteBtn = event.target.closest('.delete-variable-btn');
+        if (deleteBtn) {
+            const rowToDelete = deleteBtn.closest('tr');
+            rowToDelete.remove();
+        }
+    });
+
+    // === Initialisation ===
+    renderVariables(templateSelect.value);
+    updatePreview();
+});
+</script>
+</body>
+</html>

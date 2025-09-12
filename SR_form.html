@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Form SR Động</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #eef;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        label.required::after {
+            content: " *";
+            color: #d9534f;
+        }
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        input[type="text"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #0056b3;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.2);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .char-counter {
+            text-align: right;
+            font-size: 0.85em;
+            color: #777;
+            margin-top: 4px;
+        }
+        .checkbox-group, .checkbox-tree {
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .checkbox-tree ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        .checkbox-item label {
+            font-weight: normal;
+        }
+        .checkbox-item input {
+            margin-right: 8px;
+        }
+        button {
+            background-color: #0056b3;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #004494;
+        }
+        fieldset {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        legend {
+            font-size: 1.2em;
+            font-weight: 600;
+            padding: 0 10px;
+            color: #333;
+        }
+        .readonly-text {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Tạo yêu cầu hỗ trợ (SR)</h1>
+
+        <div class="form-group">
+            <label for="sr-type-selector" class="required">Chọn loại yêu cầu</label>
+            <select id="sr-type-selector">
+                <option value="ChangeCustomerInformation">Thay đổi thông tin khách hàng</option>
+                <option value="Liquidation">Thanh lý dịch vụ</option>
+                <option value="ServiceTransfer">Chuyển dịch vụ</option>
+                <option value="Relocation">Chuyển địa điểm cùng tỉnh</option>
+                <option value="ReCareV1_2">Trả trước dịch vụ</option>
+                <option value="TechnicalSupport">Hỗ trợ kỹ thuật</option>
+                <option value="Complain">Khiếu nại</option>
+                <option value="Guide">Giải đáp, hướng dẫn</option>
+                <option value="Pause">Tạm ngưng dịch vụ</option>
+            </select>
+        </div>
+
+        <form id="dynamic-sr-form">
+            <!-- Khu vực này sẽ được render động bằng JavaScript -->
+        </form>
+
+        <button type="submit">Tạo yêu cầu</button>
+    </div>
+
+<script>
+// =================================================================
+// "BẢN THIẾT KẾ" DỮ LIỆU (METADATA)
+// Đây là phần mà Backend sẽ trả về.
+// Team FE không cần biết nghiệp vụ, chỉ cần đọc cấu trúc này.
+// =================================================================
+const FORM_CONFIGS = {
+    // Thông tin chung, áp dụng cho tất cả
+    common_info: {
+        title: "Thông tin chung",
+        fields: [
+            { id: 'implement_location', label: 'Địa điểm giao dịch', type: 'dropdown', required: true, options: [{value: 'online', text: 'Online'}, {value: 'at_home', text: 'Tại nhà'}, {value: 'at_counter', text: 'Tại quầy'}], value: 'online'},
+            { id: 'contact_phone', label: 'Số điện thoại liên hệ', type: 'textbox', required: true, value: '0962 725 734', placeholder: 'xxxx xxx xxx'},
+            { id: 'request_content', label: 'Nội dung yêu cầu', type: 'textarea', required: true, maxLength: 500, placeholder: 'Nhập nội dung chi tiết...'}
+        ]
+    },
+    // Dịch vụ, áp dụng cho nhiều loại
+    service_info: {
+        id: 'services', label: 'Dịch vụ', type: 'checkboxtree', required: false, 
+        options: [
+            { id: 'internet', text: 'Internet FPT', children: [{id: 'fpt_play', text: 'FPT Play'}] },
+            { id: 'camera', text: 'FPT Camera Only' }
+        ]
+    },
+
+    // Cấu hình cho từng loại SR
+    ChangeCustomerInformation: {
+        title: "Loại yêu cầu",
+        fields: [
+            { id: 'change_type', label: 'Loại thay đổi', type: 'multiselect', required: true, options: [{value: 'phone', text: 'Thay đổi SĐT'}, {value: 'owner', text: 'Thay đổi thông tin chủ HĐ'}, {value: 'tax', text: 'Thay đổi mã số thuế'}] },
+            { id: 'change_reason', label: 'Nguyên nhân thay đổi', type: 'multiselect', required: true, options: [{value: 'lost_phone', text: 'Mất số điện thoại'}, {value: 'new_phone', text: 'Đổi số điện thoại'}] },
+        ]
+    },
+    Liquidation: {
+        title: "Loại yêu cầu",
+        fields: [
+            { id: 'supplier_to', label: 'Nhà cung cấp chuyển đến', type: 'dropdown', required: true, options: [{value: 'viettel', text: 'Chuyển Viettel'}, {value: 'vnpt', text: 'Chuyển VNPT'}] },
+            { id: 'reason1', label: 'Nguyên nhân 1', type: 'dropdown', required: true, options: [{value: 'fee', text: 'Cước phí dịch vụ'}, {value: 'quality', text: 'Chất lượng dịch vụ'}] },
+            { id: 'reason2', label: 'Nguyên nhân 2', type: 'dropdown', required: true, options: [{value: 'high_fee', text: 'Cước cao'}, {value: 'wrong_fee', text: 'Cước sai'}] },
+            { id: 'reason3', label: 'Nguyên nhân 3', type: 'dropdown', required: true, options: [{value: 'high_price', text: 'Giá cao'}, {value: 'extra_fee', text: 'Phát sinh thêm phí'}] },
+            // THỬ NGHIỆM: Nếu bạn bỏ comment dòng dưới, "Nguyên nhân 4" sẽ tự động xuất hiện!
+            // { id: 'reason4', label: 'Nguyên nhân 4 (Thêm mới)', type: 'dropdown', required: false, options: [{value: 'test1', text: 'Lý do A'}, {value: 'test2', text: 'Lý do B'}] },
+        ]
+    },
+    Relocation: {
+        title: "Loại yêu cầu",
+        fields: [
+            { id: 'partial_relocation', label: 'Chuyển địa điểm 1 phần', type: 'checkbox', required: false },
+            { id: 'region', label: 'Vùng/ Miền', type: 'readonly', value: 'Miền Bắc' },
+            { id: 'city', label: 'Tỉnh/ Thành phố', type: 'readonly', value: 'Hà Nội' },
+            { id: 'district', label: 'Quận/ Huyện', type: 'dropdown', required: true, options: [{value: 'cau_giay', text: 'Cầu Giấy'}, {value: 'ba_dinh', text: 'Ba Đình'}] },
+            { id: 'ward', label: 'Phường/ Xã', type: 'dropdown', required: true, options: [{value: 'dich_vong', text: 'Dịch Vọng'}, {value: 'yen_hoa', text: 'Yên Hòa'}] },
+            { id: 'street', label: 'Tên đường', type: 'textbox', required: true, placeholder: 'VD: Trần Thái Tông' },
+            { id: 'house_number', label: 'Số nhà', type: 'textbox', required: true, placeholder: 'VD: 23' },
+            { id: 'note', label: 'Ghi chú', type: 'textarea', required: false, maxLength: 255 },
+        ]
+    },
+    // Thêm các loại SR khác vào đây...
+    // Để cho demo ngắn gọn, tôi chỉ implement chi tiết vài loại.
+    // Các loại đơn giản chỉ có phần Dịch vụ
+    ServiceTransfer: { title: "Loại yêu cầu", fields: [] },
+    ReCareV1_2: { title: "Loại yêu cầu", fields: [] },
+    TechnicalSupport: { title: "Loại yêu cầu", fields: [
+        { id: 'initial_problem', label: 'Nguyên nhân sự cố ban đầu', type: 'dropdown', required: true, options: [{value: 'slow', text: 'Mạng chậm'}, {value: 'no_connect', text: 'Không kết nối được'}]},
+        { id: 'home_support', label: 'Cần hỗ trợ tại nhà', type: 'checkbox', required: true, checked: true },
+    ]},
+    Complain: { title: "Loại yêu cầu", fields: [
+        { id: 'complain_type', label: 'Loại khiếu nại', type: 'dropdown', required: true, options: [{value: 'service', text: 'Khiếu nại dịch vụ'}, {value: 'staff', text: 'Khiếu nại nhân viên'}]},
+        { id: 'complain_reason', label: 'Nguyên nhân khiếu nại', type: 'dropdown', required: true, options: [{value: 'slow_speed', text: 'Tốc độ chậm'}, {value: 'unstable', text: 'Không ổn định'}]},
+    ]},
+    Guide: { title: "Loại yêu cầu", fields: [
+        { id: 'guide_type', label: 'Loại giải đáp, hướng dẫn', type: 'dropdown', required: true, options: [{value: 'modem_setup', text: 'Hướng dẫn cài đặt Modem'}, {value: 'payment', text: 'Hướng dẫn thanh toán'}]},
+    ]},
+    Pause: { title: "Loại yêu cầu", fields: [
+        { id: 'pause_months', label: 'Số tháng tạm ngưng', type: 'dropdown', required: true, options: [{value: '1', text: '1 tháng'}, {value: '2', text: '2 tháng'}]},
+        { id: 'pause_reason', label: 'Nguyên nhân', type: 'dropdown', required: true, options: [{value: 'abroad', text: 'Ra nước ngoài'}, {value: 'temp', text: 'Tạm thời không sử dụng'}]},
+    ]}
+};
+
+// =================================================================
+// "CỖ MÁY XÂY DỰNG" GIAO DIỆN
+// Logic JavaScript để đọc "bản thiết kế" và vẽ ra form.
+// =================================================================
+
+const srTypeSelector = document.getElementById('sr-type-selector');
+const formContainer = document.getElementById('dynamic-sr-form');
+
+function renderForm(srType) {
+    // 1. Xóa sạch form hiện tại
+    formContainer.innerHTML = '';
+
+    // 2. Lấy cấu hình cho loại SR được chọn
+    const specificConfig = FORM_CONFIGS[srType];
+    const configsToRender = [FORM_CONFIGS.common_info]; // Luôn có phần chung
+    if (specificConfig) {
+        configsToRender.push(specificConfig);
+    }
+    
+    // 3. Lặp qua các khu vực (fieldset) và các trường (field) để vẽ
+    configsToRender.forEach(config => {
+        if (!config || !config.fields) return;
+
+        const fieldset = document.createElement('fieldset');
+        const legend = document.createElement('legend');
+        legend.textContent = config.title;
+        fieldset.appendChild(legend);
+
+        // Thêm trường Dịch vụ cho các loại yêu cầu (trừ loại Thay đổi TTKH)
+        const fieldsToRender = [...config.fields];
+        if (config.title === "Loại yêu cầu" && srType !== 'ChangeCustomerInformation') {
+             fieldsToRender.push(FORM_CONFIGS.service_info);
+        }
+
+        fieldsToRender.forEach(field => {
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+
+            const label = document.createElement('label');
+            label.textContent = field.label;
+            label.htmlFor = field.id;
+            if (field.required) {
+                label.classList.add('required');
+            }
+            formGroup.appendChild(label);
+            
+            // Vẽ UI component dựa trên 'type'
+            switch (field.type) {
+                case 'textbox':
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.id = field.id;
+                    input.placeholder = field.placeholder || '';
+                    input.value = field.value || '';
+                    if (field.required) input.required = true;
+                    formGroup.appendChild(input);
+                    break;
+                
+                case 'dropdown':
+                    const select = document.createElement('select');
+                    select.id = field.id;
+                    if (field.required) select.required = true;
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.text;
+                        select.appendChild(option);
+                    });
+                    if (field.value) select.value = field.value;
+                    formGroup.appendChild(select);
+                    break;
+
+                case 'multiselect':
+                    const multiSelect = document.createElement('select');
+                    multiSelect.id = field.id;
+                    multiSelect.multiple = true;
+                    if (field.required) multiSelect.required = true;
+                    field.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.text;
+                        multiSelect.appendChild(option);
+                    });
+                    formGroup.appendChild(multiSelect);
+                    break;
+
+                case 'textarea':
+                    const textarea = document.createElement('textarea');
+                    textarea.id = field.id;
+                    textarea.placeholder = field.placeholder || '';
+                    if (field.required) textarea.required = true;
+                    if (field.maxLength) {
+                        textarea.maxLength = field.maxLength;
+                        const counter = document.createElement('div');
+                        counter.className = 'char-counter';
+                        const updateCounter = () => {
+                            counter.textContent = `${textarea.value.length} / ${field.maxLength}`;
+                        };
+                        textarea.addEventListener('input', updateCounter);
+                        formGroup.appendChild(textarea);
+                        formGroup.appendChild(counter);
+                        updateCounter(); // init
+                    } else {
+                        formGroup.appendChild(textarea);
+                    }
+                    break;
+                
+                case 'checkbox':
+                     const chkGroup = document.createElement('div');
+                     chkGroup.className = 'checkbox-group';
+                     const chkItem = document.createElement('div');
+                     chkItem.className = 'checkbox-item';
+                     const checkbox = document.createElement('input');
+                     checkbox.type = 'checkbox';
+                     checkbox.id = field.id;
+                     if (field.checked) checkbox.checked = true;
+                     const chkLabel = document.createElement('label');
+                     chkLabel.htmlFor = field.id;
+                     chkLabel.textContent = field.label; // Label for checkbox is beside it
+                     chkLabel.classList.remove('required'); // Remove redundant label
+                     
+                     label.style.display = 'none'; // Hide the main label
+                     chkItem.appendChild(checkbox);
+                     chkItem.appendChild(chkLabel);
+                     chkGroup.appendChild(chkItem);
+                     formGroup.appendChild(chkGroup);
+                     break;
+
+                case 'checkboxtree':
+                    const treeContainer = document.createElement('div');
+                    treeContainer.className = 'checkbox-tree';
+                    const renderTree = (nodes, parentElement) => {
+                        const ul = document.createElement('ul');
+                        nodes.forEach(node => {
+                            const li = document.createElement('li');
+                            const item = document.createElement('div');
+                            item.className = 'checkbox-item';
+                            const chk = document.createElement('input');
+                            chk.type = 'checkbox';
+                            chk.id = `chk-${node.id}`;
+                            const lbl = document.createElement('label');
+                            lbl.htmlFor = chk.id;
+                            lbl.textContent = node.text;
+                            item.appendChild(chk);
+                            item.appendChild(lbl);
+                            li.appendChild(item);
+                            if(node.children && node.children.length > 0) {
+                                renderTree(node.children, li);
+                            }
+                            ul.appendChild(li);
+                        });
+                        parentElement.appendChild(ul);
+                    };
+                    renderTree(field.options, treeContainer);
+                    formGroup.appendChild(treeContainer);
+                    break;
+
+                case 'readonly':
+                    const readonlyDiv = document.createElement('div');
+                    readonlyDiv.className = 'readonly-text';
+                    readonlyDiv.textContent = field.value || 'N/A';
+                    formGroup.appendChild(readonlyDiv);
+                    break;
+            }
+            fieldset.appendChild(formGroup);
+        });
+        formContainer.appendChild(fieldset);
+    });
+}
+
+// 4. Lắng nghe sự kiện và render lại form khi người dùng thay đổi
+srTypeSelector.addEventListener('change', (event) => {
+    renderForm(event.target.value);
+});
+
+// 5. Render form lần đầu khi tải trang
+renderForm(srTypeSelector.value);
+
+</script>
+</body>
+</html>
